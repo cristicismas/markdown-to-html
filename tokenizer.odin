@@ -15,9 +15,10 @@ TokenType :: enum {
 	HASH_4,
 	HASH_5,
 	HASH_6,
-	UNDERSCORE,
+	BOLD,
+	ITALIC,
+	BOLD_ITALIC,
 	DASH,
-	STAR,
 	NEW_LINE,
 	QUOTE,
 	BANG,
@@ -90,7 +91,7 @@ peek_multiple :: proc(scanner: ^Scanner, count: int) -> string {
 		loops += 1
 	}
 
-	string := utf8.runes_to_string(runes[:])
+	string := utf8.runes_to_string(runes[:], context.temp_allocator)
 	return string
 }
 
@@ -121,6 +122,9 @@ add_token_literal :: proc(scanner: ^Scanner, start_index: u32, current_index: u3
 }
 
 scan_next_token :: proc(scanner: ^Scanner) {
+	// Free temporarily allocated strings each new scan
+	defer free_all(context.temp_allocator)
+
 	current_rune := advance(scanner)
 
 	tt :: TokenType
@@ -143,7 +147,6 @@ scan_next_token :: proc(scanner: ^Scanner) {
 		add_token(scanner, tt.RIGHT_PARENTHESIS)
 
 	// TODO: peek ahead for multiple-character tokens
-	// - try to check the next 'n' elements
 	// - peek ahead with regex for more complicated cases (like images and links)
 	case '#':
 		matched_token, token_length, ok := match_same_kind_tokens(
@@ -158,7 +161,29 @@ scan_next_token :: proc(scanner: ^Scanner) {
 			scanner.current += cast(u32)token_length
 		}
 	case '*':
+		matched_token, token_length, ok := match_same_kind_tokens(
+			scanner,
+			3,
+			"*",
+			{tt.BOLD, tt.ITALIC, tt.BOLD_ITALIC},
+		)
+
+		if ok {
+			add_token(scanner, matched_token)
+			scanner.current += cast(u32)token_length
+		}
 	case '_':
+		matched_token, token_length, ok := match_same_kind_tokens(
+			scanner,
+			3,
+			"_",
+			{tt.BOLD, tt.ITALIC, tt.BOLD_ITALIC},
+		)
+
+		if ok {
+			add_token(scanner, matched_token)
+			scanner.current += cast(u32)token_length
+		}
 	case '`':
 		if peek_multiple(scanner, 2) == "``" {
 			add_token(scanner, tt.CODE_BLOCK)
@@ -219,6 +244,7 @@ match_same_kind_tokens :: proc(
 	for count > 0 {
 		compare_tokens := strings.repeat(compare_str, count - 1)
 		defer delete(compare_tokens)
+
 		ahead_characters := peek_multiple(scanner, count - 1)
 
 		if ahead_characters == compare_tokens {
