@@ -59,24 +59,27 @@ Token :: struct {
 }
 
 Scanner :: struct {
-	source:  string,
-	tokens:  [dynamic]Token,
+	source:     string,
+	// number of runes in source (not bytes)
+	source_len: int,
+	tokens:     [dynamic]Token,
 	// Start index of current scan
-	start:   u32,
+	start:      u32,
 	// Current index of the current scan
-	current: u32,
+	current:    u32,
 	// Current line of the scan
-	line:    u32,
+	line:       u32,
 }
 
 @(private = "package")
 tokenize :: proc(markdown: string) -> []Token {
 	scanner := Scanner {
-		source  = markdown,
-		tokens  = [dynamic]Token{},
-		start   = 0,
-		current = 0,
-		line    = 1,
+		source     = markdown,
+		source_len = strings.rune_count(markdown),
+		tokens     = [dynamic]Token{},
+		start      = 0,
+		current    = 0,
+		line       = 1,
 	}
 
 	for !is_at_end(&scanner) {
@@ -312,11 +315,22 @@ match_same_kind_tokens :: proc(
 	return TokenType.ERROR, 0, false
 }
 
-is_at_end :: proc(scanner: ^Scanner) -> bool {
-	runes_count := strings.rune_count(scanner.source)
-	at_end := cast(int)scanner.current >= runes_count
+is_at_end :: proc {
+	is_at_end_scanner,
+	is_at_end_index,
+}
+
+is_at_end_scanner :: proc(scanner: ^Scanner) -> bool {
+	at_end := cast(int)scanner.current >= scanner.source_len
 
 	return at_end
+}
+
+is_at_end_index :: proc(scanner: ^Scanner, index: int) -> bool {
+	at_end := index >= scanner.source_len
+
+	return at_end
+
 }
 
 print_token :: proc(token: Token) {
