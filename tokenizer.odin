@@ -144,7 +144,6 @@ scan_next_token :: proc(scanner: ^Scanner) {
 	// - try to check the next 'n' elements
 	// - peek ahead with regex for more complicated cases (like images and links)
 	case '#':
-		next_2 := peek_multiple(scanner, 2)
 		switch {
 		case peek_multiple(scanner, 5) == "#####":
 			add_token(scanner, tt.HASH_6)
