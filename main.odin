@@ -11,7 +11,7 @@ Vector2 :: struct {
 }
 
 main :: proc() {
-	markdown_to_html("# - - This is an h1")
+	markdown_to_html("### This is an h1")
 }
 
 markdown_to_html :: proc(markdown: string) -> (html: string) {
