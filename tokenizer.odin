@@ -21,11 +21,13 @@ TokenType :: enum {
 	NEW_LINE,
 	QUOTE,
 	BANG,
-	BACKTICK,
+	CODE,
+	CODE_BLOCK,
 	LEFT_BRACKET,
 	RIGHT_BRACKET,
 	LEFT_PARENTHESIS,
 	RIGHT_PARENTHESIS,
+	ERROR,
 }
 
 Token :: struct {
@@ -144,28 +146,26 @@ scan_next_token :: proc(scanner: ^Scanner) {
 	// - try to check the next 'n' elements
 	// - peek ahead with regex for more complicated cases (like images and links)
 	case '#':
-		switch {
-		case peek_multiple(scanner, 5) == "#####":
-			add_token(scanner, tt.HASH_6)
-			scanner.current += 5
-		case peek_multiple(scanner, 4) == "####":
-			add_token(scanner, tt.HASH_5)
-			scanner.current += 4
-		case peek_multiple(scanner, 3) == "###":
-			add_token(scanner, tt.HASH_4)
-			scanner.current += 3
-		case peek_multiple(scanner, 2) == "##":
-			add_token(scanner, tt.HASH_3)
-			scanner.current += 2
-		case peek_multiple(scanner, 1) == "#":
-			add_token(scanner, tt.HASH_2)
-			scanner.current += 1
-		case:
-			add_token(scanner, tt.HASH_1)
+		matched_token, token_length, ok := match_same_kind_tokens(
+			scanner,
+			6,
+			"#",
+			{tt.HASH_1, tt.HASH_2, tt.HASH_3, tt.HASH_4, tt.HASH_5, tt.HASH_6},
+		)
+
+		if ok {
+			add_token(scanner, matched_token)
+			scanner.current += cast(u32)token_length
 		}
 	case '*':
 	case '_':
 	case '`':
+		if peek_multiple(scanner, 2) == "``" {
+			add_token(scanner, tt.CODE_BLOCK)
+			scanner.current += 2
+		} else {
+			add_token(scanner, tt.CODE)
+		}
 	case '!':
 	// Ignore whitespace, tabs, returns
 	case ' ':
@@ -180,6 +180,58 @@ scan_next_token :: proc(scanner: ^Scanner) {
 			scanner.line,
 		)
 	}
+}
+
+/* 
+	Searches the next 'max_count' elements, starting from the scanner's current position, and compares
+	each permutation of 'compare_str' up to max_count, to see if we get any matches.
+
+	This is useful when searching for all permutations of headings for example:
+		#
+		##
+		###
+		####
+		#####
+		######
+	
+	This function also increments scanner.current by the length of the match that was found (if any).
+
+	Important: token_types need to be passed in ascending order, so for the heading example, we
+	would have: HASH_1, HASH_2, ..., HASH_6
+*/
+match_same_kind_tokens :: proc(
+	scanner: ^Scanner,
+	max_count: int,
+	compare_str: string,
+	token_types: []TokenType,
+) -> (
+	found_token: TokenType,
+	token_length: int,
+	ok: bool,
+) {
+	if len(token_types) != max_count {
+		fmt.eprintln("ERROR: len(token_types) needs to be the same as max_count")
+		return TokenType.ERROR, 0, false
+	}
+
+	count := max_count
+
+	for count > 0 {
+		compare_tokens := strings.repeat(compare_str, count - 1)
+		defer delete(compare_tokens)
+		ahead_characters := peek_multiple(scanner, count - 1)
+
+		if ahead_characters == compare_tokens {
+			found_token = token_types[count - 1]
+
+			return found_token, count - 1, true
+		}
+
+		count -= 1
+	}
+
+	fmt.eprintln("ERROR: Couldn't match any tokens, check your condition.")
+	return TokenType.ERROR, 0, false
 }
 
 is_at_end :: proc(scanner: ^Scanner) -> bool {
