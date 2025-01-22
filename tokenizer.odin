@@ -201,7 +201,7 @@ scan_next_token :: proc(scanner: ^Scanner) {
 	// Error
 	case utf8.RUNE_ERROR:
 		fmt.eprintfln(
-			"Got a rune error when scanning at: start: %v, current: %v, line: %v",
+			"ERROR: Got a rune error when scanning at: start: %v, current: %v, line: %v",
 			scanner.start,
 			scanner.current,
 			scanner.line,
@@ -221,8 +221,6 @@ scan_next_token :: proc(scanner: ^Scanner) {
 		#####
 		######
 	
-	This function also increments scanner.current by the length of the match that was found (if any).
-
 	Important: token_types need to be passed in ascending order, so for the heading example, we
 	would have: HASH_1, HASH_2, ..., HASH_6
 */
