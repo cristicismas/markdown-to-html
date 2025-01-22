@@ -8,23 +8,7 @@ import "core:slice"
 import "core:strings"
 import "core:unicode/utf8"
 
-TOKEN_RUNES: []rune = {
-	'-',
-	'\n',
-	'>',
-	'[',
-	']',
-	'(',
-	')',
-	'#',
-	'*',
-	'_',
-	'`',
-	'!',
-	'\t',
-	'\r',
-	utf8.RUNE_ERROR,
-}
+TOKEN_RUNES: []rune = {'-', '>', '[', ']', '(', ')', '#', '*', '_', '`', '!', utf8.RUNE_ERROR}
 
 @(private = "package")
 TokenType :: enum {
@@ -226,7 +210,6 @@ scan_next_token :: proc(scanner: ^Scanner) {
 		)
 	// Text
 	case:
-		fmt.println(scanner.current)
 		text := peek_until_next_token(scanner)
 		text_len := strings.rune_count(text)
 
@@ -235,14 +218,12 @@ scan_next_token :: proc(scanner: ^Scanner) {
 	}
 }
 
+// TODO: Fix all the ugly -1 offsetting if possible
 peek_until_next_token :: proc(scanner: ^Scanner) -> string {
 	search_index := scanner.current - 1
 
-	// FIXME: is_at_end checks scanner.current_index, which
-	// doesn't get modified in this function. Possible inifinite loop?
-	for !is_at_end(scanner) {
+	for !is_at_end(scanner, cast(int)search_index - 1) {
 		current_rune := utf8.rune_at_pos(scanner.source, cast(int)search_index)
-		fmt.println("curr rune: ", current_rune)
 
 		if slice.contains(TOKEN_RUNES, current_rune) {
 			if search_index < scanner.current {
@@ -254,7 +235,6 @@ peek_until_next_token :: proc(scanner: ^Scanner) -> string {
 				return ""
 			}
 
-			fmt.println("return")
 			return scanner.source[scanner.current - 1:search_index]
 		}
 
