@@ -26,7 +26,7 @@ tokenize_h1_test :: proc(t: ^testing.T) {
 
 	expected_tokens: [2]Token = {
 		{line = 1, type = TokenType.HASH_1},
-		{line = 1, type = TokenType.TEXT, content = "h1 tokenize test"},
+		{line = 1, type = TokenType.TEXT, content = " h1 tokenize test"},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))

@@ -4,8 +4,27 @@ package main
 import sa "core:container/small_array"
 import "core:fmt"
 import "core:reflect"
+import "core:slice"
 import "core:strings"
 import "core:unicode/utf8"
+
+TOKEN_RUNES: []rune = {
+	'-',
+	'\n',
+	'>',
+	'[',
+	']',
+	'(',
+	')',
+	'#',
+	'*',
+	'_',
+	'`',
+	'!',
+	'\t',
+	'\r',
+	utf8.RUNE_ERROR,
+}
 
 @(private = "package")
 TokenType :: enum {
@@ -104,7 +123,7 @@ peek_single :: proc(scanner: ^Scanner, index: int) -> rune {
 
 add_token :: proc {
 	add_token_type,
-	add_token_literal,
+	add_token_text,
 }
 
 add_token_type :: proc(scanner: ^Scanner, token_type: TokenType) {
@@ -115,9 +134,10 @@ add_token_type :: proc(scanner: ^Scanner, token_type: TokenType) {
 	append(&scanner.tokens, token)
 }
 
-add_token_literal :: proc(scanner: ^Scanner, start_index: u32, current_index: u32) {
+add_token_text :: proc(scanner: ^Scanner, text: string) {
 	token := Token {
-		content = scanner.source[scanner.start:scanner.current],
+		content = text,
+		type    = TokenType.TEXT,
 		line    = scanner.line,
 	}
 	append(&scanner.tokens, token)
@@ -147,7 +167,6 @@ scan_next_token :: proc(scanner: ^Scanner) {
 		add_token(scanner, tt.LEFT_PARENTHESIS)
 	case ')':
 		add_token(scanner, tt.RIGHT_PARENTHESIS)
-
 	// TODO: peek ahead for multiple-character tokens
 	// - peek ahead with regex for more complicated cases (like images and links)
 	case '#':
@@ -194,10 +213,6 @@ scan_next_token :: proc(scanner: ^Scanner) {
 			add_token(scanner, tt.CODE)
 		}
 	case '!':
-	// Ignore whitespace, tabs, returns
-	case ' ':
-	case '\t':
-	case '\r':
 	// Error
 	case utf8.RUNE_ERROR:
 		fmt.eprintfln(
@@ -206,10 +221,47 @@ scan_next_token :: proc(scanner: ^Scanner) {
 			scanner.current,
 			scanner.line,
 		)
+	// Text
+	case:
+		fmt.println(scanner.current)
+		text := peek_until_next_token(scanner)
+		text_len := strings.rune_count(text)
+
+		scanner.current += cast(u32)text_len
+		add_token(scanner, text)
 	}
 }
 
-/* 
+peek_until_next_token :: proc(scanner: ^Scanner) -> string {
+	search_index := scanner.current - 1
+
+	// FIXME: is_at_end checks scanner.current_index, which
+	// doesn't get modified in this function. Possible inifinite loop?
+	for !is_at_end(scanner) {
+		current_rune := utf8.rune_at_pos(scanner.source, cast(int)search_index)
+		fmt.println("curr rune: ", current_rune)
+
+		if slice.contains(TOKEN_RUNES, current_rune) {
+			if search_index < scanner.current {
+				fmt.eprintfln(
+					"ERROR: Unable to index the correct slice for the given parameters: search_index: %v, current_rune: %v",
+					search_index,
+					current_rune,
+				)
+				return ""
+			}
+
+			fmt.println("return")
+			return scanner.source[scanner.current - 1:search_index]
+		}
+
+		search_index += 1
+	}
+
+	return scanner.source[scanner.current:search_index - 1]
+}
+
+/*
 	Searches the next 'max_count' elements, starting from the scanner's current position, and compares
 	each permutation of 'compare_str' up to max_count, to see if we get any matches.
 
@@ -269,7 +321,11 @@ is_at_end :: proc(scanner: ^Scanner) -> bool {
 
 print_token :: proc(token: Token) {
 	if name, ok := reflect.enum_name_from_value(token.type); ok {
-		fmt.print(name)
+		if token.type == TokenType.TEXT {
+			fmt.printf("%v(%v)", name, token.content)
+		} else {
+			fmt.print(name)
+		}
 	}
 }
 
