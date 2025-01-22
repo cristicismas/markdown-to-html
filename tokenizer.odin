@@ -7,6 +7,7 @@ import "core:reflect"
 import "core:strings"
 import "core:unicode/utf8"
 
+@(private = "package")
 TokenType :: enum {
 	TEXT,
 	HASH_1,
@@ -31,6 +32,7 @@ TokenType :: enum {
 	ERROR,
 }
 
+@(private = "package")
 Token :: struct {
 	type:    TokenType,
 	line:    u32,
