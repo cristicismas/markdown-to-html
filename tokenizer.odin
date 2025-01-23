@@ -8,7 +8,7 @@ import "core:slice"
 import "core:strings"
 import "core:unicode/utf8"
 
-TOKEN_RUNES: []rune = {'-', '>', '[', ']', '(', ')', '#', '*', '_', '`', '!', utf8.RUNE_ERROR}
+TOKEN_RUNES: []rune = {'-', '>', '[', '#', '*', '_', '`', '!', utf8.RUNE_ERROR}
 
 @(private = "package")
 TokenType :: enum {
@@ -25,13 +25,9 @@ TokenType :: enum {
 	DASH,
 	NEW_LINE,
 	QUOTE,
-	BANG,
 	CODE,
 	CODE_BLOCK,
-	LEFT_BRACKET,
-	RIGHT_BRACKET,
-	LEFT_PARENTHESIS,
-	RIGHT_PARENTHESIS,
+	LINK,
 	ERROR,
 }
 
@@ -40,6 +36,7 @@ Token :: struct {
 	type:    TokenType,
 	line:    u32,
 	content: string,
+	link:    string,
 }
 
 Scanner :: struct {
@@ -66,7 +63,7 @@ tokenize :: proc(markdown: string) -> []Token {
 		line       = 1,
 	}
 
-	for !is_at_end(&scanner) {
+	for !is_at_end(scanner) {
 		scanner.start = scanner.current
 		scan_next_token(&scanner)
 	}
@@ -111,6 +108,7 @@ peek_single :: proc(scanner: ^Scanner, index: int) -> rune {
 add_token :: proc {
 	add_token_type,
 	add_token_text,
+	add_token_link,
 }
 
 add_token_type :: proc(scanner: ^Scanner, token_type: TokenType) {
@@ -130,6 +128,17 @@ add_token_text :: proc(scanner: ^Scanner, text: string) {
 	append(&scanner.tokens, token)
 }
 
+add_token_link :: proc(scanner: ^Scanner, text: string, link: string) {
+	token := Token {
+		content = text,
+		link    = link,
+		type    = TokenType.LINK,
+		line    = scanner.line,
+	}
+	append(&scanner.tokens, token)
+}
+
+
 scan_next_token :: proc(scanner: ^Scanner) {
 	// Free temporarily allocated strings each new scan
 	defer free_all(context.temp_allocator)
@@ -146,16 +155,7 @@ scan_next_token :: proc(scanner: ^Scanner) {
 		add_token(scanner, tt.NEW_LINE)
 	case '>':
 		add_token(scanner, tt.QUOTE)
-	case '[':
-		add_token(scanner, tt.LEFT_BRACKET)
-	case ']':
-		add_token(scanner, tt.RIGHT_BRACKET)
-	case '(':
-		add_token(scanner, tt.LEFT_PARENTHESIS)
-	case ')':
-		add_token(scanner, tt.RIGHT_PARENTHESIS)
-	// TODO: peek ahead for multiple-character tokens
-	// - peek ahead with regex for more complicated cases (like images and links)
+	// More complex cases
 	case '#':
 		matched_token, token_length, ok := match_same_kind_tokens(
 			scanner,
@@ -199,7 +199,55 @@ scan_next_token :: proc(scanner: ^Scanner) {
 		} else {
 			add_token(scanner, tt.CODE)
 		}
-	case '!':
+	case '[':
+		look_ahead, ok := peek_until_next_specific_token(scanner, ']', scanner.current)
+
+		// OPTIMIZE: on !ok, we could just peek_until_next_token and add the result of that (so we don't get separated TEXT() tokens) 
+		// (don't forget to add len - 1 to scanner.current)
+		if !ok {
+			add_token(scanner, "[")
+			return
+		}
+
+		link_text := look_ahead[1:]
+
+		new_lookup_offset := cast(int)scanner.current + strings.rune_count(look_ahead)
+
+		// Look for the next character
+		next_rune := peek_single(scanner, new_lookup_offset)
+
+		// If we can't find the next paranthesis, just add the string as a TEXT token
+		if next_rune != '(' {
+			add_token(scanner, strings.concatenate({"[", link_text, "]"}))
+			// TODO: test if this is right
+			scanner.current += cast(u32)new_lookup_offset
+			return
+		}
+
+		new_lookup_offset += 1
+
+		href_look_ahead, ok_2 := peek_until_next_specific_token(
+			scanner,
+			')',
+			cast(u32)new_lookup_offset,
+		)
+
+		// OPTIMIZE: on !ok, we could just peek_until_next_token and add the result of that (so we don't get separated TEXT() tokens)
+		if !ok_2 {
+			add_token(scanner, "(")
+			return
+		}
+
+		link_href := href_look_ahead[1:]
+
+		add_token(scanner, link_text, link_href)
+
+		link_len := strings.rune_count(
+			strings.concatenate({"[", link_text, "]", "(", link_href, ")"}),
+		)
+		scanner.current += cast(u32)link_len - 1
+
+
 	// Error
 	case utf8.RUNE_ERROR:
 		fmt.eprintfln(
@@ -210,17 +258,17 @@ scan_next_token :: proc(scanner: ^Scanner) {
 		)
 	// Text
 	case:
-		text := peek_until_next_token(scanner)
+		text := peek_until_next_token(scanner^)
 		text_len := strings.rune_count(text)
 
-		scanner.current += cast(u32)text_len
+		scanner.current += cast(u32)text_len - 1
 		add_token(scanner, text)
 	}
 }
 
 // TODO: Fix all the ugly -1 offsetting if possible
-peek_until_next_token :: proc(scanner: ^Scanner) -> string {
-	search_index := scanner.current - 1
+peek_until_next_token :: proc(scanner: Scanner) -> string {
+	search_index := scanner.current
 
 	for !is_at_end(scanner, cast(int)search_index - 1) {
 		current_rune := utf8.rune_at_pos(scanner.source, cast(int)search_index)
@@ -242,6 +290,39 @@ peek_until_next_token :: proc(scanner: ^Scanner) -> string {
 	}
 
 	return scanner.source[scanner.current:search_index - 1]
+}
+
+// TODO: Fix all the ugly -1 offsetting if possible
+peek_until_next_specific_token :: proc(
+	scanner: ^Scanner,
+	token: rune,
+	start_index: u32,
+) -> (
+	result: string,
+	ok: bool,
+) {
+	search_index := start_index
+
+	for !is_at_end(scanner^, cast(int)search_index - 1) {
+		current_rune := utf8.rune_at_pos(scanner.source, cast(int)search_index)
+
+		if current_rune == token {
+			if search_index < scanner.current {
+				fmt.eprintfln(
+					"ERROR: Unable to index the correct slice for the given parameters: search_index: %v, current_rune: %v",
+					search_index,
+					current_rune,
+				)
+				return "", false
+			}
+
+			return scanner.source[start_index - 1:search_index], true
+		}
+
+		search_index += 1
+	}
+
+	return "", false
 }
 
 /*
@@ -300,13 +381,13 @@ is_at_end :: proc {
 	is_at_end_index,
 }
 
-is_at_end_scanner :: proc(scanner: ^Scanner) -> bool {
+is_at_end_scanner :: proc(scanner: Scanner) -> bool {
 	at_end := cast(int)scanner.current >= scanner.source_len
 
 	return at_end
 }
 
-is_at_end_index :: proc(scanner: ^Scanner, index: int) -> bool {
+is_at_end_index :: proc(scanner: Scanner, index: int) -> bool {
 	at_end := index >= scanner.source_len
 
 	return at_end
@@ -316,7 +397,9 @@ is_at_end_index :: proc(scanner: ^Scanner, index: int) -> bool {
 print_token :: proc(token: Token) {
 	if name, ok := reflect.enum_name_from_value(token.type); ok {
 		if token.type == TokenType.TEXT {
-			fmt.printf("%v(%v)", name, token.content)
+			fmt.printf("%v('%v')", name, token.content)
+		} else if token.type == TokenType.LINK {
+			fmt.printf("%v('%v' : '%v')", name, token.content, token.link)
 		} else {
 			fmt.print(name)
 		}

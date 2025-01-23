@@ -11,7 +11,9 @@ Vector2 :: struct {
 }
 
 main :: proc() {
-	markdown_to_html("## start **This** ```is``` an _h2_")
+	// TODO: handle "Here is a [](!"
+	// TODO: handle "Here is a [empty link?]!"
+	markdown_to_html("Here is a [](!")
 }
 
 markdown_to_html :: proc(markdown: string) -> (html: string) {

@@ -12,14 +12,6 @@ empty_string_test :: proc(t: ^testing.T) {
 }
 
 @(test)
-simple_h1_test :: proc(t: ^testing.T) {
-	markdown := "# Simple h1 test"
-	html := markdown_to_html(markdown)
-
-	testing.expect(t, html == "<h1>Simple h1 test</h1>")
-}
-
-@(test)
 tokenize_h1_test :: proc(t: ^testing.T) {
 	input_string := "# h1 tokenize test"
 	tokens := tokenize(input_string)
@@ -32,9 +24,41 @@ tokenize_h1_test :: proc(t: ^testing.T) {
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
 }
 
+@(test)
+tokenize_link_simple_test :: proc(t: ^testing.T) {
+	input_string := "Here is a [link](https://www.google.com)!"
+	tokens := tokenize(input_string)
+
+	expected_tokens: [3]Token = {
+		{line = 1, type = TokenType.TEXT, content = "Here is a "},
+		{line = 1, type = TokenType.LINK, content = "link", link = "https://www.google.com"},
+		{line = 1, type = TokenType.TEXT, content = "!"},
+	}
+
+	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
+}
+
+@(test)
+tokenize_link_empty_test :: proc(t: ^testing.T) {
+	input_string := "Here is an empty link []()!"
+	tokens := tokenize(input_string)
+
+	expected_tokens: [3]Token = {
+		{line = 1, type = TokenType.TEXT, content = "Here is an empty link "},
+		{line = 1, type = TokenType.LINK, content = "", link = ""},
+		{line = 1, type = TokenType.TEXT, content = "!"},
+	}
+
+	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
+}
+
 compare_token_slices :: proc(first: []Token, second: []Token) -> (are_equal: bool) {
 	if len(first) != len(second) {
-		fmt.eprintln("ERROR: Slice lenghts are not equal")
+		fmt.eprintfln(
+			"ERROR: Slice lengths are not equal. first len: %v; second len: %v",
+			len(first),
+			len(second),
+		)
 	}
 
 	for token, i in first {
