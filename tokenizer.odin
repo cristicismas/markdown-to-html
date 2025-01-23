@@ -259,7 +259,10 @@ scan_next_token :: proc(scanner: ^Scanner) {
 		add_token(scanner, link_text, link_href)
 
 		link_len := strings.rune_count(
-			strings.concatenate({"[", link_text, "]", "(", link_href, ")"}),
+			strings.concatenate(
+				{"[", link_text, "]", "(", link_href, ")"},
+				context.temp_allocator,
+			),
 		)
 		scanner.current += cast(u32)link_len - 1
 
