@@ -285,7 +285,6 @@ scan_next_token :: proc(scanner: ^Scanner) {
 	}
 }
 
-// TODO: Fix all the ugly -1 offsetting if possible
 peek_until_next_token :: proc(scanner: ^Scanner, start_index: u32) -> string {
 	search_index := start_index
 
@@ -302,7 +301,7 @@ peek_until_next_token :: proc(scanner: ^Scanner, start_index: u32) -> string {
 				return ""
 			}
 
-			return scanner.source[scanner.current - 1:search_index]
+			return scanner.source[start_index - 1:search_index]
 		}
 
 		search_index += 1
@@ -311,7 +310,6 @@ peek_until_next_token :: proc(scanner: ^Scanner, start_index: u32) -> string {
 	return scanner.source[scanner.current:search_index - 1]
 }
 
-// TODO: Fix all the ugly -1 offsetting if possible
 peek_until_next_specific_token :: proc(
 	scanner: ^Scanner,
 	token: rune,
