@@ -63,7 +63,7 @@ tokenize :: proc(markdown: string) -> []Token {
 		line       = 1,
 	}
 
-	for !is_at_end(scanner) {
+	for !is_at_end(&scanner) {
 		scanner.start = scanner.current
 		scan_next_token(&scanner)
 	}
@@ -120,12 +120,24 @@ add_token_type :: proc(scanner: ^Scanner, token_type: TokenType) {
 }
 
 add_token_text :: proc(scanner: ^Scanner, text: string) {
-	token := Token {
+	new_text_token := Token {
 		content = text,
 		type    = TokenType.TEXT,
 		line    = scanner.line,
 	}
-	append(&scanner.tokens, token)
+
+	// if the previous token was already text, consolidate them.
+	if len(scanner.tokens) > 0 {
+		previous_token := &scanner.tokens[len(scanner.tokens) - 1]
+
+		if previous_token.type == TokenType.TEXT {
+			previous_token.content = strings.concatenate({previous_token.content, text})
+		} else {
+			append(&scanner.tokens, new_text_token)
+		}
+	} else {
+		append(&scanner.tokens, new_text_token)
+	}
 }
 
 add_token_link :: proc(scanner: ^Scanner, text: string, link: string) {
@@ -202,10 +214,12 @@ scan_next_token :: proc(scanner: ^Scanner) {
 	case '[':
 		look_ahead, ok := peek_until_next_specific_token(scanner, ']', scanner.current)
 
-		// OPTIMIZE: on !ok, we could just peek_until_next_token and add the result of that (so we don't get separated TEXT() tokens) 
-		// (don't forget to add len - 1 to scanner.current)
 		if !ok {
-			add_token(scanner, "[")
+			text := peek_until_next_token(scanner, scanner.current)
+			text_len := strings.rune_count(text)
+
+			scanner.current += cast(u32)text_len - 1
+			add_token(scanner, text)
 			return
 		}
 
@@ -220,7 +234,7 @@ scan_next_token :: proc(scanner: ^Scanner) {
 		if next_rune != '(' {
 			add_token(scanner, strings.concatenate({"[", link_text, "]"}))
 			// TODO: test if this is right
-			scanner.current += cast(u32)new_lookup_offset
+			scanner.current = cast(u32)new_lookup_offset
 			return
 		}
 
@@ -232,9 +246,12 @@ scan_next_token :: proc(scanner: ^Scanner) {
 			cast(u32)new_lookup_offset,
 		)
 
-		// OPTIMIZE: on !ok, we could just peek_until_next_token and add the result of that (so we don't get separated TEXT() tokens)
 		if !ok_2 {
-			add_token(scanner, "(")
+			text := peek_until_next_token(scanner, cast(u32)new_lookup_offset)
+			text_len := strings.rune_count(text)
+
+			scanner.current += cast(u32)text_len - 1
+			add_token(scanner, text)
 			return
 		}
 
@@ -258,7 +275,7 @@ scan_next_token :: proc(scanner: ^Scanner) {
 		)
 	// Text
 	case:
-		text := peek_until_next_token(scanner^)
+		text := peek_until_next_token(scanner, scanner.current)
 		text_len := strings.rune_count(text)
 
 		scanner.current += cast(u32)text_len - 1
@@ -267,8 +284,8 @@ scan_next_token :: proc(scanner: ^Scanner) {
 }
 
 // TODO: Fix all the ugly -1 offsetting if possible
-peek_until_next_token :: proc(scanner: Scanner) -> string {
-	search_index := scanner.current
+peek_until_next_token :: proc(scanner: ^Scanner, start_index: u32) -> string {
+	search_index := start_index
 
 	for !is_at_end(scanner, cast(int)search_index - 1) {
 		current_rune := utf8.rune_at_pos(scanner.source, cast(int)search_index)
@@ -303,7 +320,7 @@ peek_until_next_specific_token :: proc(
 ) {
 	search_index := start_index
 
-	for !is_at_end(scanner^, cast(int)search_index - 1) {
+	for !is_at_end(scanner, cast(int)search_index - 1) {
 		current_rune := utf8.rune_at_pos(scanner.source, cast(int)search_index)
 
 		if current_rune == token {
@@ -381,13 +398,13 @@ is_at_end :: proc {
 	is_at_end_index,
 }
 
-is_at_end_scanner :: proc(scanner: Scanner) -> bool {
+is_at_end_scanner :: proc(scanner: ^Scanner) -> bool {
 	at_end := cast(int)scanner.current >= scanner.source_len
 
 	return at_end
 }
 
-is_at_end_index :: proc(scanner: Scanner, index: int) -> bool {
+is_at_end_index :: proc(scanner: ^Scanner, index: int) -> bool {
 	at_end := index >= scanner.source_len
 
 	return at_end

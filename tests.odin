@@ -52,6 +52,34 @@ tokenize_link_empty_test :: proc(t: ^testing.T) {
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
 }
 
+@(test)
+tokenize_invalid_link :: proc(t: ^testing.T) {
+	input_string := "Here is a [](!"
+	tokens := tokenize(input_string)
+
+	expected_token: Token = {
+		line    = 1,
+		type    = TokenType.TEXT,
+		content = "Here is a [](!",
+	}
+
+	testing.expect(t, expected_token == tokens[0])
+}
+
+@(test)
+tokenize_invalid_link_2 :: proc(t: ^testing.T) {
+	input_string := "Here is an [invalid link?]!"
+	tokens := tokenize(input_string)
+
+	expected_token: Token = {
+		line    = 1,
+		type    = TokenType.TEXT,
+		content = "Here is an [invalid link?]!",
+	}
+
+	testing.expect(t, expected_token == tokens[0])
+}
+
 compare_token_slices :: proc(first: []Token, second: []Token) -> (are_equal: bool) {
 	if len(first) != len(second) {
 		fmt.eprintfln(
