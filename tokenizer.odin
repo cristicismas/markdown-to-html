@@ -233,7 +233,6 @@ scan_next_token :: proc(scanner: ^Scanner) {
 		// If we can't find the next paranthesis, just add the string as a TEXT token
 		if next_rune != '(' {
 			add_token(scanner, strings.concatenate({"[", link_text, "]"}))
-			// TODO: test if this is right
 			scanner.current = cast(u32)new_lookup_offset
 			return
 		}
