@@ -11,7 +11,7 @@ Vector2 :: struct {
 }
 
 main :: proc() {
-	markdown_to_html("# Here is an [invalid link?]!")
+	markdown_to_html("Here is a [](!")
 }
 
 markdown_to_html :: proc(markdown: string) -> (html: string) {

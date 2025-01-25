@@ -212,60 +212,7 @@ scan_next_token :: proc(scanner: ^Scanner) {
 			add_token(scanner, tt.CODE)
 		}
 	case '[':
-		look_ahead, ok := peek_until_next_specific_token(scanner, ']', scanner.current)
-
-		if !ok {
-			text := peek_until_next_token(scanner, scanner.current)
-			text_len := strings.rune_count(text)
-
-			scanner.current += cast(u32)text_len - 1
-			add_token(scanner, text)
-			return
-		}
-
-		link_text := look_ahead[1:]
-
-		new_lookup_offset := cast(int)scanner.current + strings.rune_count(look_ahead)
-
-		// Look for the next character
-		next_rune := peek_single(scanner, new_lookup_offset)
-
-		// If we can't find the next paranthesis, just add the string as a TEXT token
-		if next_rune != '(' {
-			add_token(scanner, strings.concatenate({"[", link_text, "]"}))
-			scanner.current = cast(u32)new_lookup_offset
-			return
-		}
-
-		new_lookup_offset += 1
-
-		href_look_ahead, ok_2 := peek_until_next_specific_token(
-			scanner,
-			')',
-			cast(u32)new_lookup_offset,
-		)
-
-		if !ok_2 {
-			text := peek_until_next_token(scanner, cast(u32)new_lookup_offset)
-			text_len := strings.rune_count(text)
-
-			scanner.current += cast(u32)text_len - 1
-			add_token(scanner, text)
-			return
-		}
-
-		link_href := href_look_ahead[1:]
-
-		add_token(scanner, link_text, link_href)
-
-		link_len := strings.rune_count(
-			strings.concatenate(
-				{"[", link_text, "]", "(", link_href, ")"},
-				context.temp_allocator,
-			),
-		)
-		scanner.current += cast(u32)link_len - 1
-
+		try_scan_link(scanner)
 
 	// Error
 	case utf8.RUNE_ERROR:
@@ -283,6 +230,60 @@ scan_next_token :: proc(scanner: ^Scanner) {
 		scanner.current += cast(u32)text_len - 1
 		add_token(scanner, text)
 	}
+}
+
+try_scan_link :: proc(scanner: ^Scanner) {
+	look_ahead, ok := peek_until_next_specific_token(scanner, ']', scanner.current)
+
+	if !ok {
+		text := peek_until_next_token(scanner, scanner.current)
+		text_len := strings.rune_count(text)
+
+		scanner.current += cast(u32)text_len - 1
+		add_token(scanner, text)
+		return
+	}
+
+	link_text := look_ahead[1:]
+
+	new_lookup_offset := cast(int)scanner.current + strings.rune_count(look_ahead)
+
+	// Look for the next character
+	next_rune := peek_single(scanner, new_lookup_offset)
+
+	// If we can't find the next paranthesis, just add the string as a TEXT token
+	if next_rune != '(' {
+		add_token(scanner, strings.concatenate({"[", link_text, "]"}))
+		scanner.current = cast(u32)new_lookup_offset
+		return
+	}
+
+	new_lookup_offset += 1
+
+	href_look_ahead, ok_2 := peek_until_next_specific_token(
+		scanner,
+		')',
+		cast(u32)new_lookup_offset,
+	)
+
+	if !ok_2 {
+		text := strings.concatenate({"[", link_text, "]", "("})
+		text_len := strings.rune_count(text)
+
+		scanner.current += cast(u32)text_len - 1
+		add_token(scanner, text)
+		return
+	}
+
+	link_href := href_look_ahead[1:]
+
+	add_token(scanner, link_text, link_href)
+
+	link_len := strings.rune_count(
+		strings.concatenate({"[", link_text, "]", "(", link_href, ")"}, context.temp_allocator),
+	)
+	scanner.current += cast(u32)link_len - 1
+
 }
 
 peek_until_next_token :: proc(scanner: ^Scanner, start_index: u32) -> string {
