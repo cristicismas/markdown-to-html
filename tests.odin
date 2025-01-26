@@ -80,6 +80,104 @@ tokenize_invalid_link_2 :: proc(t: ^testing.T) {
 	testing.expect(t, expected_token == tokens[0])
 }
 
+@(test)
+tokenize_invalid_link_3 :: proc(t: ^testing.T) {
+	input_string := "Here is a [!"
+	tokens := tokenize(input_string)
+
+	expected_token: Token = {
+		line    = 1,
+		type    = TokenType.TEXT,
+		content = "Here is a [!",
+	}
+
+	testing.expect(t, expected_token == tokens[0])
+}
+
+@(test)
+tokenize_image_simple :: proc(t: ^testing.T) {
+	input_string := "Here is an ![image alt](https://placehold.co/600x400)!"
+	tokens := tokenize(input_string)
+
+	expected_tokens: [3]Token = {
+		{line = 1, type = TokenType.TEXT, content = "Here is an "},
+		{
+			line = 1,
+			type = TokenType.IMAGE,
+			content = "image alt",
+			link = "https://placehold.co/600x400",
+		},
+		{line = 1, type = TokenType.TEXT, content = "!"},
+	}
+
+	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
+}
+
+@(test)
+tokenize_image_with_figcap :: proc(t: ^testing.T) {
+	input_string := "Here is an ![image alt](https://placehold.co/600x400 \"Figure caption\")!"
+	tokens := tokenize(input_string)
+
+	expected_tokens: [3]Token = {
+		{line = 1, type = TokenType.TEXT, content = "Here is an "},
+		{
+			line = 1,
+			type = TokenType.IMAGE,
+			content = "image alt",
+			link = "https://placehold.co/600x400 \"Figure caption\"",
+		},
+		{line = 1, type = TokenType.TEXT, content = "!"},
+	}
+
+	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
+
+}
+
+@(test)
+tokenize_image_empty :: proc(t: ^testing.T) {
+	input_string := "Here is an ![]()!"
+	tokens := tokenize(input_string)
+
+	expected_tokens: [3]Token = {
+		{line = 1, type = TokenType.TEXT, content = "Here is an "},
+		{line = 1, type = TokenType.IMAGE, content = "", link = ""},
+		{line = 1, type = TokenType.TEXT, content = "!"},
+	}
+
+	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
+
+}
+
+@(test)
+tokenize_image_invalid :: proc(t: ^testing.T) {
+	input_string := "Here is an ![](!"
+	tokens := tokenize(input_string)
+
+	expected_tokens: [1]Token = {{line = 1, type = TokenType.TEXT, content = "Here is an ![](!"}}
+
+	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
+}
+
+@(test)
+tokenize_image_invalid_2 :: proc(t: ^testing.T) {
+	input_string := "Here is an ![]!"
+	tokens := tokenize(input_string)
+
+	expected_tokens: [1]Token = {{line = 1, type = TokenType.TEXT, content = "Here is an ![]!"}}
+
+	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
+}
+
+@(test)
+tokenize_image_invalid_3 :: proc(t: ^testing.T) {
+	input_string := "Here is an ![!"
+	tokens := tokenize(input_string)
+
+	expected_tokens: [1]Token = {{line = 1, type = TokenType.TEXT, content = "Here is an ![!"}}
+
+	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
+}
+
 compare_token_slices :: proc(first: []Token, second: []Token) -> (are_equal: bool) {
 	if len(first) != len(second) {
 		fmt.eprintfln(

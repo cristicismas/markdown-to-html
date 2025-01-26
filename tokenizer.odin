@@ -28,6 +28,7 @@ TokenType :: enum {
 	CODE,
 	CODE_BLOCK,
 	LINK,
+	IMAGE,
 	ERROR,
 }
 
@@ -140,13 +141,21 @@ add_token_text :: proc(scanner: ^Scanner, text: string) {
 	}
 }
 
-add_token_link :: proc(scanner: ^Scanner, text: string, link: string) {
+add_token_link :: proc(
+	scanner: ^Scanner,
+	text: string,
+	link: string,
+	token_type: TokenType = TokenType.LINK,
+) {
+	assert(token_type == TokenType.LINK || token_type == TokenType.IMAGE)
+
 	token := Token {
 		content = text,
 		link    = link,
-		type    = TokenType.LINK,
+		type    = token_type,
 		line    = scanner.line,
 	}
+
 	append(&scanner.tokens, token)
 }
 
@@ -212,8 +221,16 @@ scan_next_token :: proc(scanner: ^Scanner) {
 			add_token(scanner, tt.CODE)
 		}
 	case '[':
-		try_scan_link(scanner)
+		try_scan_link(scanner, TokenType.LINK)
+	case '!':
+		next := peek_single(scanner, cast(int)scanner.current)
+		scanner.current += 1
 
+		if next != '[' {
+			add_token(scanner, "!")
+		} else {
+			try_scan_link(scanner, TokenType.IMAGE)
+		}
 	// Error
 	case utf8.RUNE_ERROR:
 		fmt.eprintfln(
@@ -232,14 +249,21 @@ scan_next_token :: proc(scanner: ^Scanner) {
 	}
 }
 
-try_scan_link :: proc(scanner: ^Scanner) {
+try_scan_link :: proc(scanner: ^Scanner, link_type: TokenType) {
+	assert(link_type == TokenType.LINK || link_type == TokenType.IMAGE)
+
 	look_ahead, ok := peek_until_next_specific_token(scanner, ']', scanner.current)
 
 	if !ok {
 		text := peek_until_next_token(scanner, scanner.current)
 		text_len := strings.rune_count(text)
 
+		if link_type == TokenType.IMAGE {
+			text = strings.concatenate({"!", text})
+		}
+
 		scanner.current += cast(u32)text_len - 1
+
 		add_token(scanner, text)
 		return
 	}
@@ -253,7 +277,11 @@ try_scan_link :: proc(scanner: ^Scanner) {
 
 	// If we can't find the next paranthesis, just add the string as a TEXT token
 	if next_rune != '(' {
-		add_token(scanner, strings.concatenate({"[", link_text, "]"}))
+		text := strings.concatenate({"[", link_text, "]"})
+		if link_type == TokenType.IMAGE {
+			text = strings.concatenate({"!", text})
+		}
+		add_token(scanner, text)
 		scanner.current = cast(u32)new_lookup_offset
 		return
 	}
@@ -270,6 +298,10 @@ try_scan_link :: proc(scanner: ^Scanner) {
 		text := strings.concatenate({"[", link_text, "]", "("})
 		text_len := strings.rune_count(text)
 
+		if link_type == TokenType.IMAGE {
+			text = strings.concatenate({"!", text})
+		}
+
 		scanner.current += cast(u32)text_len - 1
 		add_token(scanner, text)
 		return
@@ -277,7 +309,7 @@ try_scan_link :: proc(scanner: ^Scanner) {
 
 	link_href := href_look_ahead[1:]
 
-	add_token(scanner, link_text, link_href)
+	add_token(scanner, link_text, link_href, link_type)
 
 	link_len := strings.rune_count(
 		strings.concatenate({"[", link_text, "]", "(", link_href, ")"}, context.temp_allocator),
@@ -416,7 +448,7 @@ print_token :: proc(token: Token) {
 	if name, ok := reflect.enum_name_from_value(token.type); ok {
 		if token.type == TokenType.TEXT {
 			fmt.printf("%v('%v')", name, token.content)
-		} else if token.type == TokenType.LINK {
+		} else if token.type == TokenType.LINK || token.type == TokenType.IMAGE {
 			fmt.printf("%v('%v' : '%v')", name, token.content, token.link)
 		} else {
 			fmt.print(name)
