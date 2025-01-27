@@ -8,7 +8,7 @@ import "core:slice"
 import "core:strings"
 import "core:unicode/utf8"
 
-TOKEN_RUNES: []rune = {'-', '>', '[', '#', '*', '_', '`', '!', '\n', utf8.RUNE_ERROR}
+TOKEN_RUNES: []rune = {'-', '>', '[', '#', '*', '_', '`', '!', '\n', '\r', utf8.RUNE_ERROR}
 
 @(private = "package")
 TokenType :: enum {
@@ -173,6 +173,13 @@ scan_next_token :: proc(scanner: ^Scanner) {
 	case '\n':
 		add_token(scanner, tt.NEW_LINE)
 		scanner.line += 1
+	case '\r':
+		next := peek_single(scanner, cast(int)scanner.current)
+		if next != '\n' {
+			add_token(scanner, "\r")
+		} else {
+			break
+		}
 	case '-':
 		add_token(scanner, tt.DASH)
 	case '>':

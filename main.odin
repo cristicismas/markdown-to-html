@@ -11,7 +11,7 @@ Vector2 :: struct {
 }
 
 main :: proc() {
-	input_string := "Here is a !\n[](! new line"
+	input_string := "Here is a \r\n new line"
 	markdown_to_html(input_string)
 }
 
