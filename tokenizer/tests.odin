@@ -17,6 +17,66 @@ tokenize_h1_test :: proc(t: ^testing.T) {
 }
 
 @(test)
+tokenize_italic :: proc(t: ^testing.T) {
+	input_string := "Here is a *bold* text and another _bold_ text"
+	tokens := tokenize(input_string)
+
+	expected_tokens := [?]Token {
+		{line = 1, type = TokenType.TEXT, content = "Here is a "},
+		{line = 1, type = TokenType.ITALIC},
+		{line = 1, type = TokenType.TEXT, content = "bold"},
+		{line = 1, type = TokenType.ITALIC},
+		{line = 1, type = TokenType.TEXT, content = " text and another "},
+		{line = 1, type = TokenType.ITALIC},
+		{line = 1, type = TokenType.TEXT, content = "bold"},
+		{line = 1, type = TokenType.ITALIC},
+		{line = 1, type = TokenType.TEXT, content = " text"},
+	}
+
+	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
+}
+
+@(test)
+tokenize_bold :: proc(t: ^testing.T) {
+	input_string := "Here is a **bold** text and another __bold__ text"
+	tokens := tokenize(input_string)
+
+	expected_tokens := [?]Token {
+		{line = 1, type = TokenType.TEXT, content = "Here is a "},
+		{line = 1, type = TokenType.BOLD},
+		{line = 1, type = TokenType.TEXT, content = "bold"},
+		{line = 1, type = TokenType.BOLD},
+		{line = 1, type = TokenType.TEXT, content = " text and another "},
+		{line = 1, type = TokenType.BOLD},
+		{line = 1, type = TokenType.TEXT, content = "bold"},
+		{line = 1, type = TokenType.BOLD},
+		{line = 1, type = TokenType.TEXT, content = " text"},
+	}
+
+	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
+}
+
+@(test)
+tokenize_bold_italic :: proc(t: ^testing.T) {
+	input_string := "Here is a ***bold*** text and another ___bold___ text"
+	tokens := tokenize(input_string)
+
+	expected_tokens := [?]Token {
+		{line = 1, type = TokenType.TEXT, content = "Here is a "},
+		{line = 1, type = TokenType.BOLD_ITALIC},
+		{line = 1, type = TokenType.TEXT, content = "bold"},
+		{line = 1, type = TokenType.BOLD_ITALIC},
+		{line = 1, type = TokenType.TEXT, content = " text and another "},
+		{line = 1, type = TokenType.BOLD_ITALIC},
+		{line = 1, type = TokenType.TEXT, content = "bold"},
+		{line = 1, type = TokenType.BOLD_ITALIC},
+		{line = 1, type = TokenType.TEXT, content = " text"},
+	}
+
+	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
+}
+
+@(test)
 tokenize_link_simple_test :: proc(t: ^testing.T) {
 	input_string := "Here is a [link](https://www.google.com)!"
 	tokens := tokenize(input_string)

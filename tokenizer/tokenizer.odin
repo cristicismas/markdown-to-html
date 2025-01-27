@@ -198,7 +198,7 @@ scan_next_token :: proc(scanner: ^Scanner) {
 			scanner,
 			3,
 			"*",
-			{tt.BOLD, tt.ITALIC, tt.BOLD_ITALIC},
+			{tt.ITALIC, tt.BOLD, tt.BOLD_ITALIC},
 		)
 
 		if ok {
@@ -210,7 +210,7 @@ scan_next_token :: proc(scanner: ^Scanner) {
 			scanner,
 			3,
 			"_",
-			{tt.BOLD, tt.ITALIC, tt.BOLD_ITALIC},
+			{tt.ITALIC, tt.BOLD, tt.BOLD_ITALIC},
 		)
 
 		if ok {
