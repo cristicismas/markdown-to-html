@@ -4,6 +4,7 @@ import "core:fmt"
 import "core:reflect"
 import "core:strings"
 import "core:unicode/utf8"
+import t "tokenizer"
 
 Vector2 :: struct {
 	x: u32,
@@ -16,7 +17,7 @@ main :: proc() {
 }
 
 markdown_to_html :: proc(markdown: string) -> (html: string) {
-	tokens := tokenize(markdown)
+	tokens := t.tokenize(markdown)
 
 	return ""
 }

@@ -1,5 +1,4 @@
-#+private file
-package main
+package tokenizer
 
 import sa "core:container/small_array"
 import "core:fmt"
@@ -10,7 +9,6 @@ import "core:unicode/utf8"
 
 TOKEN_RUNES: []rune = {'-', '>', '[', '#', '*', '_', '`', '!', '\n', '\r', utf8.RUNE_ERROR}
 
-@(private = "package")
 TokenType :: enum {
 	TEXT,
 	HASH_1,
@@ -32,7 +30,6 @@ TokenType :: enum {
 	ERROR,
 }
 
-@(private = "package")
 Token :: struct {
 	type:    TokenType,
 	line:    u32,
@@ -53,7 +50,6 @@ Scanner :: struct {
 	line:       u32,
 }
 
-@(private = "package")
 tokenize :: proc(markdown: string) -> []Token {
 	scanner := Scanner {
 		source     = markdown,

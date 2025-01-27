@@ -1,15 +1,7 @@
-package main
+package tokenizer
 
 import "core:fmt"
 import "core:testing"
-
-@(test)
-empty_string_test :: proc(t: ^testing.T) {
-	markdown := ""
-	html := markdown_to_html(markdown)
-
-	testing.expect(t, html == "")
-}
 
 @(test)
 tokenize_h1_test :: proc(t: ^testing.T) {
