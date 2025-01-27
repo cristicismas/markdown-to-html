@@ -155,7 +155,7 @@ add_token_link :: proc(
 	append(&scanner.tokens, token)
 }
 
-
+// TODO: add possibility to escape symbols
 scan_next_token :: proc(scanner: ^Scanner) {
 	// Free temporarily allocated strings each new scan
 	defer free_all(context.temp_allocator)
@@ -179,7 +179,14 @@ scan_next_token :: proc(scanner: ^Scanner) {
 	case '-':
 		add_token(scanner, tt.DASH)
 	case '>':
-		add_token(scanner, tt.QUOTE)
+		prev_char := peek_single(scanner, cast(int)scanner.current - 2)
+		is_at_file_beginning := prev_char == utf8.RUNE_ERROR
+
+		if prev_char == '\n' || is_at_file_beginning {
+			add_token(scanner, tt.QUOTE)
+		} else {
+			add_token(scanner, ">")
+		}
 	// More complex cases
 	case '#':
 		matched_token, token_length, ok := match_same_kind_tokens(

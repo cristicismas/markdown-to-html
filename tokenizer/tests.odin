@@ -16,6 +16,34 @@ tokenize_h1_test :: proc(t: ^testing.T) {
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
 }
 
+// TODO: add tests for code, code_block
+@(test)
+tokenize_quote_simple :: proc(t: ^testing.T) {
+	input_string := "> Simple quote example"
+	tokens := tokenize(input_string)
+
+	expected_tokens := [?]Token {
+		{line = 1, type = TokenType.QUOTE},
+		{line = 1, type = TokenType.TEXT, content = " Simple quote example"},
+	}
+
+	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
+}
+
+@(test)
+tokenize_quote_after_newline :: proc(t: ^testing.T) {
+	input_string := "\n> Simple quote example"
+	tokens := tokenize(input_string)
+
+	expected_tokens := [?]Token {
+		{line = 1, type = TokenType.NEW_LINE},
+		{line = 2, type = TokenType.QUOTE},
+		{line = 2, type = TokenType.TEXT, content = " Simple quote example"},
+	}
+
+	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
+}
+
 @(test)
 tokenize_italic :: proc(t: ^testing.T) {
 	input_string := "Here is a *bold* text and another _bold_ text"

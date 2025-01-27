@@ -12,7 +12,7 @@ Vector2 :: struct {
 }
 
 main :: proc() {
-	input_string := "Here is a **bold** text and another __bold__ text"
+	input_string := "hi!\n> Simple quote example"
 	markdown_to_html(input_string)
 }
 
