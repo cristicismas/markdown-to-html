@@ -11,7 +11,8 @@ Vector2 :: struct {
 }
 
 main :: proc() {
-	markdown_to_html("Here is an ![](!")
+	input_string := "Here is a !\n[](! new line"
+	markdown_to_html(input_string)
 }
 
 markdown_to_html :: proc(markdown: string) -> (html: string) {

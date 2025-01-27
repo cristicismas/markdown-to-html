@@ -178,6 +178,34 @@ tokenize_image_invalid_3 :: proc(t: ^testing.T) {
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
 }
 
+@(test)
+tokenize_new_line :: proc(t: ^testing.T) {
+	input_string := "Here is a \n new line"
+	tokens := tokenize(input_string)
+
+	expected_tokens: [3]Token = {
+		{line = 1, type = TokenType.TEXT, content = "Here is a "},
+		{line = 1, type = TokenType.NEW_LINE},
+		{line = 2, type = TokenType.TEXT, content = " new line"},
+	}
+
+	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
+}
+
+@(test)
+tokenize_new_line_and_invalid_image :: proc(t: ^testing.T) {
+	input_string := "Here is a !\n[](! new line"
+	tokens := tokenize(input_string)
+
+	expected_tokens: [3]Token = {
+		{line = 1, type = TokenType.TEXT, content = "Here is a !"},
+		{line = 1, type = TokenType.NEW_LINE},
+		{line = 2, type = TokenType.TEXT, content = "[](! new line"},
+	}
+
+	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
+}
+
 compare_token_slices :: proc(first: []Token, second: []Token) -> (are_equal: bool) {
 	if len(first) != len(second) {
 		fmt.eprintfln(

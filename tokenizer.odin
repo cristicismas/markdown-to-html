@@ -8,7 +8,7 @@ import "core:slice"
 import "core:strings"
 import "core:unicode/utf8"
 
-TOKEN_RUNES: []rune = {'-', '>', '[', '#', '*', '_', '`', '!', utf8.RUNE_ERROR}
+TOKEN_RUNES: []rune = {'-', '>', '[', '#', '*', '_', '`', '!', '\n', utf8.RUNE_ERROR}
 
 @(private = "package")
 TokenType :: enum {
@@ -170,10 +170,11 @@ scan_next_token :: proc(scanner: ^Scanner) {
 
 	switch current_rune {
 	// Single character
-	case '-':
-		add_token(scanner, tt.DASH)
 	case '\n':
 		add_token(scanner, tt.NEW_LINE)
+		scanner.line += 1
+	case '-':
+		add_token(scanner, tt.DASH)
 	case '>':
 		add_token(scanner, tt.QUOTE)
 	// More complex cases
@@ -224,11 +225,11 @@ scan_next_token :: proc(scanner: ^Scanner) {
 		try_scan_link(scanner, TokenType.LINK)
 	case '!':
 		next := peek_single(scanner, cast(int)scanner.current)
-		scanner.current += 1
 
 		if next != '[' {
 			add_token(scanner, "!")
 		} else {
+			scanner.current += 1
 			try_scan_link(scanner, TokenType.IMAGE)
 		}
 	// Error
