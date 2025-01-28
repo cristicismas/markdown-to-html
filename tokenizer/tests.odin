@@ -45,6 +45,38 @@ tokenize_quote_after_newline :: proc(t: ^testing.T) {
 }
 
 @(test)
+tokenize_code_simple :: proc(t: ^testing.T) {
+	input_string := "Hi, here is a simple `code`"
+	tokens := tokenize(input_string)
+
+	expected_tokens := [?]Token {
+		{line = 1, type = TokenType.TEXT, content = "Hi, here is a simple "},
+		{line = 1, type = TokenType.CODE},
+		{line = 1, type = TokenType.TEXT, content = "code"},
+		{line = 1, type = TokenType.CODE},
+	}
+
+	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
+}
+
+@(test)
+tokenize_code_block :: proc(t: ^testing.T) {
+	input_string := "Hi, here is a ```code block\nanother code block line\nand another```"
+	tokens := tokenize(input_string)
+
+	expected_tokens := [?]Token {
+		{line = 1, type = TokenType.TEXT, content = "Hi, here is a "},
+		{
+			line = 1,
+			type = TokenType.CODE_BLOCK,
+			content = "code block\nanother code block line\nand another",
+		},
+	}
+
+	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
+}
+
+@(test)
 tokenize_italic :: proc(t: ^testing.T) {
 	input_string := "Here is a *bold* text and another _bold_ text"
 	tokens := tokenize(input_string)

@@ -12,7 +12,7 @@ Vector2 :: struct {
 }
 
 main :: proc() {
-	input_string := "hi!\n> Simple quote example"
+	input_string := "Hi, here is a ```code block\nanother code block line\nand another```"
 	markdown_to_html(input_string)
 }
 

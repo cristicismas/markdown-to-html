@@ -106,6 +106,7 @@ add_token :: proc {
 	add_token_type,
 	add_token_text,
 	add_token_link,
+	add_token_with_content,
 }
 
 add_token_type :: proc(scanner: ^Scanner, token_type: TokenType) {
@@ -135,6 +136,16 @@ add_token_text :: proc(scanner: ^Scanner, text: string) {
 	} else {
 		append(&scanner.tokens, new_text_token)
 	}
+}
+
+add_token_with_content :: proc(scanner: ^Scanner, token_type: TokenType, text: string) {
+	token := Token {
+		content = text,
+		type    = token_type,
+		line    = scanner.line,
+	}
+
+	append(&scanner.tokens, token)
 }
 
 add_token_link :: proc(
@@ -226,8 +237,25 @@ scan_next_token :: proc(scanner: ^Scanner) {
 		}
 	case '`':
 		if peek_multiple(scanner, 2) == "``" {
-			add_token(scanner, tt.CODE_BLOCK)
+			// TODO: add the text until the text CODE_BLOCK, since that text needs to be escaped anyway
 			scanner.current += 2
+
+			text_until_next_code_block, ok := peek_until_next_sequence(
+				scanner,
+				"```",
+				cast(int)scanner.current,
+			)
+
+			// If we can't find the next CODE_BLOCK sequence in the source file, 
+			// then just add this token as a string
+			if !ok {
+				add_token(scanner, "```")
+				return
+			}
+
+			scanner.current += cast(u32)utf8.rune_count(text_until_next_code_block) + 3
+
+			add_token(scanner, tt.CODE_BLOCK, text_until_next_code_block)
 		} else {
 			add_token(scanner, tt.CODE)
 		}
@@ -326,7 +354,51 @@ try_scan_link :: proc(scanner: ^Scanner, link_type: TokenType) {
 		strings.concatenate({"[", link_text, "]", "(", link_href, ")"}, context.temp_allocator),
 	)
 	scanner.current += cast(u32)link_len - 1
+}
 
+peek_until_next_sequence :: proc(
+	scanner: ^Scanner,
+	sequence: string,
+	start_index: int,
+) -> (
+	result: string,
+	ok: bool,
+) {
+	search_index := start_index
+
+	for !is_at_end(scanner, search_index - 1) {
+		sequence_at_index := get_sequence_at_index(
+			scanner.source,
+			utf8.rune_count(sequence),
+			search_index,
+		)
+
+		if sequence_at_index == "```" {
+			return scanner.source[scanner.current:search_index], true
+		}
+		search_index += 1
+	}
+
+	return "", false
+}
+
+get_sequence_at_index :: proc(source: string, sequence_len: int, start_index: int) -> string {
+	runes := make([dynamic]rune, 0, sequence_len, context.temp_allocator)
+
+	index := 0
+
+	for index < sequence_len {
+		rune_at_index := utf8.rune_at_pos(source, index + start_index)
+
+		if rune_at_index == utf8.RUNE_ERROR {
+			return ""
+		}
+
+		append(&runes, rune_at_index)
+		index += 1
+	}
+
+	return utf8.runes_to_string(runes[:])
 }
 
 peek_until_next_token :: proc(scanner: ^Scanner, start_index: u32) -> string {
@@ -457,7 +529,7 @@ is_at_end_index :: proc(scanner: ^Scanner, index: int) -> bool {
 
 print_token :: proc(token: Token) {
 	if name, ok := reflect.enum_name_from_value(token.type); ok {
-		if token.type == TokenType.TEXT {
+		if token.type == TokenType.TEXT || token.type == TokenType.CODE_BLOCK {
 			fmt.printf("%v('%v')", name, token.content)
 		} else if token.type == TokenType.LINK || token.type == TokenType.IMAGE {
 			fmt.printf("%v('%v' : '%v')", name, token.content, token.link)
