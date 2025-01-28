@@ -1,9 +1,6 @@
 package tokenizer
 
-import sa "core:container/small_array"
 import "core:fmt"
-import "core:reflect"
-import "core:slice"
 import "core:strings"
 import "core:unicode/utf8"
 
@@ -74,31 +71,6 @@ advance :: proc(scanner: ^Scanner) -> rune {
 	current_rune := utf8.rune_at_pos(scanner.source, cast(int)scanner.current)
 	scanner.current += 1
 
-	return current_rune
-}
-
-// Peeks multiple elements ahead of the scanner's current position
-peek_multiple :: proc(scanner: ^Scanner, count: int) -> string {
-	index := cast(int)scanner.current
-	loops := 0
-
-	runes := make([dynamic]rune, 0, count)
-	defer delete(runes)
-
-	for loops < count {
-		start_index := cast(int)scanner.current + loops
-		new_rune := peek_single(scanner, start_index)
-		append(&runes, new_rune)
-
-		loops += 1
-	}
-
-	string := utf8.runes_to_string(runes[:], context.temp_allocator)
-	return string
-}
-
-peek_single :: proc(scanner: ^Scanner, index: int) -> rune {
-	current_rune := utf8.rune_at_pos(scanner.source, index)
 	return current_rune
 }
 
@@ -206,7 +178,7 @@ scan_next_token :: proc(scanner: ^Scanner) {
 		}
 	// More complex cases
 	case '#':
-		matched_token, token_length, ok := match_same_kind_tokens(
+		matched_token, token_length, ok := scan_same_kind_tokens(
 			scanner,
 			6,
 			"#",
@@ -218,7 +190,7 @@ scan_next_token :: proc(scanner: ^Scanner) {
 			scanner.current += cast(u32)token_length
 		}
 	case '*':
-		matched_token, token_length, ok := match_same_kind_tokens(
+		matched_token, token_length, ok := scan_same_kind_tokens(
 			scanner,
 			3,
 			"*",
@@ -230,7 +202,7 @@ scan_next_token :: proc(scanner: ^Scanner) {
 			scanner.current += cast(u32)token_length
 		}
 	case '_':
-		matched_token, token_length, ok := match_same_kind_tokens(
+		matched_token, token_length, ok := scan_same_kind_tokens(
 			scanner,
 			3,
 			"_",
@@ -293,229 +265,6 @@ scan_next_token :: proc(scanner: ^Scanner) {
 	}
 }
 
-try_scan_link :: proc(scanner: ^Scanner, link_type: TokenType) {
-	assert(link_type == TokenType.LINK || link_type == TokenType.IMAGE)
-
-	look_ahead, ok := peek_until_next_specific_token(scanner, ']', scanner.current)
-
-	if !ok {
-		text := peek_until_next_token(scanner, scanner.current)
-		text_len := strings.rune_count(text)
-
-		if link_type == TokenType.IMAGE {
-			text = strings.concatenate({"!", text})
-		}
-
-		scanner.current += cast(u32)text_len - 1
-
-		add_token(scanner, text)
-		return
-	}
-
-	link_text := look_ahead[1:]
-
-	new_lookup_offset := cast(int)scanner.current + strings.rune_count(look_ahead)
-
-	// Look for the next character
-	next_rune := peek_single(scanner, new_lookup_offset)
-
-	// If we can't find the next paranthesis, just add the string as a TEXT token
-	if next_rune != '(' {
-		text := strings.concatenate({"[", link_text, "]"})
-		if link_type == TokenType.IMAGE {
-			text = strings.concatenate({"!", text})
-		}
-		add_token(scanner, text)
-		scanner.current = cast(u32)new_lookup_offset
-		return
-	}
-
-	new_lookup_offset += 1
-
-	href_look_ahead, ok_2 := peek_until_next_specific_token(
-		scanner,
-		')',
-		cast(u32)new_lookup_offset,
-	)
-
-	if !ok_2 {
-		text := strings.concatenate({"[", link_text, "]", "("})
-		text_len := strings.rune_count(text)
-
-		if link_type == TokenType.IMAGE {
-			text = strings.concatenate({"!", text})
-		}
-
-		scanner.current += cast(u32)text_len - 1
-		add_token(scanner, text)
-		return
-	}
-
-	link_href := href_look_ahead[1:]
-
-	add_token(scanner, link_text, link_href, link_type)
-
-	link_len := strings.rune_count(
-		strings.concatenate({"[", link_text, "]", "(", link_href, ")"}, context.temp_allocator),
-	)
-	scanner.current += cast(u32)link_len - 1
-}
-
-peek_until_next_sequence :: proc(
-	scanner: ^Scanner,
-	sequence: string,
-	start_index: int,
-) -> (
-	result: string,
-	ok: bool,
-) {
-	search_index := start_index
-
-	for !is_at_end(scanner, search_index - 1) {
-		sequence_at_index := get_sequence_at_index(
-			scanner.source,
-			utf8.rune_count(sequence),
-			search_index,
-		)
-
-		if sequence_at_index == "```" {
-			return scanner.source[scanner.current:search_index], true
-		} else {
-			delete(sequence_at_index)
-		}
-		search_index += 1
-	}
-
-	return "", false
-}
-
-get_sequence_at_index :: proc(source: string, sequence_len: int, start_index: int) -> string {
-	runes := make([dynamic]rune, 0, sequence_len, context.temp_allocator)
-
-	index := 0
-
-	for index < sequence_len {
-		rune_at_index := utf8.rune_at_pos(source, index + start_index)
-
-		if rune_at_index == utf8.RUNE_ERROR {
-			return ""
-		}
-
-		append(&runes, rune_at_index)
-		index += 1
-	}
-
-	return utf8.runes_to_string(runes[:])
-}
-
-peek_until_next_token :: proc(scanner: ^Scanner, start_index: u32) -> string {
-	search_index := start_index
-
-	for !is_at_end(scanner, cast(int)search_index - 1) {
-		current_rune := utf8.rune_at_pos(scanner.source, cast(int)search_index)
-
-		if slice.contains(TOKEN_RUNES, current_rune) {
-			if search_index < scanner.current {
-				fmt.eprintfln(
-					"ERROR: Unable to index the correct slice for the given parameters: search_index: %v, current_rune: %v",
-					search_index,
-					current_rune,
-				)
-				return ""
-			}
-
-			return scanner.source[start_index - 1:search_index]
-		}
-
-		search_index += 1
-	}
-
-	return scanner.source[scanner.current:search_index - 1]
-}
-
-peek_until_next_specific_token :: proc(
-	scanner: ^Scanner,
-	token: rune,
-	start_index: u32,
-) -> (
-	result: string,
-	ok: bool,
-) {
-	search_index := start_index
-
-	for !is_at_end(scanner, cast(int)search_index - 1) {
-		current_rune := utf8.rune_at_pos(scanner.source, cast(int)search_index)
-
-		if current_rune == token {
-			if search_index < scanner.current {
-				fmt.eprintfln(
-					"ERROR: Unable to index the correct slice for the given parameters: search_index: %v, current_rune: %v",
-					search_index,
-					current_rune,
-				)
-				return "", false
-			}
-
-			return scanner.source[start_index - 1:search_index], true
-		}
-
-		search_index += 1
-	}
-
-	return "", false
-}
-
-/*
-	Searches the next 'max_count' elements, starting from the scanner's current position, and compares
-	each permutation of 'compare_str' up to max_count, to see if we get any matches.
-
-	This is useful when searching for all permutations of headings for example:
-		#
-		##
-		###
-		####
-		#####
-		######
-	
-	Important: token_types need to be passed in ascending order, so for the heading example, we
-	would have: HASH_1, HASH_2, ..., HASH_6
-*/
-match_same_kind_tokens :: proc(
-	scanner: ^Scanner,
-	max_count: int,
-	compare_str: string,
-	token_types: []TokenType,
-) -> (
-	found_token: TokenType,
-	token_length: int,
-	ok: bool,
-) {
-	if len(token_types) != max_count {
-		fmt.eprintln("ERROR: len(token_types) needs to be the same as max_count")
-		return TokenType.ERROR, 0, false
-	}
-
-	count := max_count
-
-	for count > 0 {
-		compare_tokens := strings.repeat(compare_str, count - 1)
-		defer delete(compare_tokens)
-
-		ahead_characters := peek_multiple(scanner, count - 1)
-
-		if ahead_characters == compare_tokens {
-			found_token = token_types[count - 1]
-
-			return found_token, count - 1, true
-		}
-
-		count -= 1
-	}
-
-	fmt.eprintln("ERROR: Couldn't match any tokens, check your condition.")
-	return TokenType.ERROR, 0, false
-}
-
 is_at_end :: proc {
 	is_at_end_scanner,
 	is_at_end_index,
@@ -531,29 +280,4 @@ is_at_end_index :: proc(scanner: ^Scanner, index: int) -> bool {
 	at_end := index >= scanner.source_len
 
 	return at_end
-
-}
-
-print_token :: proc(token: Token) {
-	if name, ok := reflect.enum_name_from_value(token.type); ok {
-		if token.type == TokenType.TEXT || token.type == TokenType.CODE_BLOCK {
-			fmt.printf("%v('%v')", name, token.content)
-		} else if token.type == TokenType.LINK || token.type == TokenType.IMAGE {
-			fmt.printf("%v('%v' : '%v')", name, token.content, token.link)
-		} else {
-			fmt.print(name)
-		}
-	}
-}
-
-print_tokens :: proc(tokens: []Token) {
-	for token, i in tokens {
-		print_token(token)
-
-		if i < len(tokens) - 1 {
-			fmt.print(", ")
-		} else {
-			fmt.print("\n")
-		}
-	}
 }
