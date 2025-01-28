@@ -7,7 +7,7 @@ import "core:slice"
 import "core:strings"
 import "core:unicode/utf8"
 
-TOKEN_RUNES: []rune = {'-', '>', '[', '#', '*', '_', '`', '!', '\n', '\r', utf8.RUNE_ERROR}
+TOKEN_RUNES: []rune = {'-', '>', '[', '#', '*', '_', '`', '!', '\n', '\r', '\\', utf8.RUNE_ERROR}
 
 TokenType :: enum {
 	TEXT,
@@ -166,7 +166,6 @@ add_token_link :: proc(
 	append(&scanner.tokens, token)
 }
 
-// TODO: add possibility to escape symbols
 scan_next_token :: proc(scanner: ^Scanner) {
 	// Free temporarily allocated strings each new scan
 	defer free_all(context.temp_allocator)
@@ -177,6 +176,13 @@ scan_next_token :: proc(scanner: ^Scanner) {
 
 	switch current_rune {
 	// Single character
+	case '\\':
+		next := peek_single(scanner, cast(int)scanner.current)
+
+		if next != utf8.RUNE_ERROR && next != '\n' && next != '\r' {
+			add_token(scanner, utf8.runes_to_string({next}))
+		}
+		scanner.current += 1
 	case '\n':
 		add_token(scanner, tt.NEW_LINE)
 		scanner.line += 1
@@ -237,7 +243,6 @@ scan_next_token :: proc(scanner: ^Scanner) {
 		}
 	case '`':
 		if peek_multiple(scanner, 2) == "``" {
-			// TODO: add the text until the text CODE_BLOCK, since that text needs to be escaped anyway
 			scanner.current += 2
 
 			text_until_next_code_block, ok := peek_until_next_sequence(

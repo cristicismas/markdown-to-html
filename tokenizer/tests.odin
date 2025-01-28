@@ -16,7 +16,6 @@ tokenize_h1_test :: proc(t: ^testing.T) {
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
 }
 
-// TODO: add tests for code, code_block
 @(test)
 tokenize_quote_simple :: proc(t: ^testing.T) {
 	input_string := "> Simple quote example"
@@ -339,6 +338,22 @@ tokenize_carriage_return_invalid :: proc(t: ^testing.T) {
 
 	expected_tokens: [1]Token = {
 		{line = 1, type = TokenType.TEXT, content = "Here is an \r invalid cr"},
+	}
+
+	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
+}
+
+@(test)
+tokenize_escape_characters :: proc(t: ^testing.T) {
+	input_string := "Here is an escaped \\# H1 tag and an escaped \\\\ backwards slash."
+	tokens := tokenize(input_string)
+
+	expected_tokens := [?]Token {
+		{
+			line = 1,
+			type = TokenType.TEXT,
+			content = "Here is an escaped # H1 tag and an escaped \\ backwards slash.",
+		},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))

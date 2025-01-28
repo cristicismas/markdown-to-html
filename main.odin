@@ -12,7 +12,7 @@ Vector2 :: struct {
 }
 
 main :: proc() {
-	input_string := "Hi, here is a ```code block\nanother code block line\nand another```"
+	input_string := "Here is an escaped \\# H1 tag and an escaped \\\\ backwards slash."
 	markdown_to_html(input_string)
 }
 
