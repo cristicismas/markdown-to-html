@@ -380,6 +380,8 @@ peek_until_next_sequence :: proc(
 
 		if sequence_at_index == "```" {
 			return scanner.source[scanner.current:search_index], true
+		} else {
+			delete(sequence_at_index)
 		}
 		search_index += 1
 	}
