@@ -1,1 +1,1 @@
-odin run src/ -out:bin/output
+odin run src/ -debug -out:bin/output
