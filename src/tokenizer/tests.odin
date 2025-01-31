@@ -11,6 +11,7 @@ tokenize_h1_test :: proc(t: ^testing.T) {
 	expected_tokens := [?]Token {
 		{line = 1, type = TokenType.HASH_1},
 		{line = 1, type = TokenType.TEXT, content = " h1 tokenize test"},
+		{line = 1, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -28,6 +29,7 @@ tokenize_paragraph_beginning :: proc(t: ^testing.T) {
 			type = TokenType.TEXT,
 			content = "This is a paragraph at the beginning of the string",
 		},
+		{line = 1, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -46,6 +48,7 @@ tokenize_paragraph_beginning_with_new_line :: proc(t: ^testing.T) {
 			type = TokenType.TEXT,
 			content = "This is a paragraph at the beginning of the string",
 		},
+		{line = 2, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -71,6 +74,7 @@ tokenize_paragraph_complex :: proc(t: ^testing.T) {
 		{line = 7, type = TokenType.TEXT, content = "beginning of "},
 		{line = 7, type = TokenType.NEW_LINE},
 		{line = 8, type = TokenType.TEXT, content = "the string"},
+		{line = 8, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -84,6 +88,7 @@ tokenize_quote_simple :: proc(t: ^testing.T) {
 	expected_tokens := [?]Token {
 		{line = 1, type = TokenType.QUOTE},
 		{line = 1, type = TokenType.TEXT, content = " Simple quote example"},
+		{line = 1, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -98,6 +103,7 @@ tokenize_quote_after_newline :: proc(t: ^testing.T) {
 		{line = 1, type = TokenType.NEW_LINE},
 		{line = 2, type = TokenType.QUOTE},
 		{line = 2, type = TokenType.TEXT, content = " Simple quote example"},
+		{line = 2, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -114,6 +120,7 @@ tokenize_code_simple :: proc(t: ^testing.T) {
 		{line = 1, type = TokenType.CODE},
 		{line = 1, type = TokenType.TEXT, content = "code"},
 		{line = 1, type = TokenType.CODE},
+		{line = 1, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -132,6 +139,7 @@ tokenize_code_block :: proc(t: ^testing.T) {
 			type = TokenType.CODE_BLOCK,
 			content = "code block\nanother code block line\nand another",
 		},
+		{line = 1, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -153,6 +161,7 @@ tokenize_italic :: proc(t: ^testing.T) {
 		{line = 1, type = TokenType.TEXT, content = "bold"},
 		{line = 1, type = TokenType.ITALIC},
 		{line = 1, type = TokenType.TEXT, content = " text"},
+		{line = 1, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -174,6 +183,7 @@ tokenize_bold :: proc(t: ^testing.T) {
 		{line = 1, type = TokenType.TEXT, content = "bold"},
 		{line = 1, type = TokenType.BOLD},
 		{line = 1, type = TokenType.TEXT, content = " text"},
+		{line = 1, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -195,6 +205,7 @@ tokenize_bold_italic :: proc(t: ^testing.T) {
 		{line = 1, type = TokenType.TEXT, content = "bold"},
 		{line = 1, type = TokenType.BOLD_ITALIC},
 		{line = 1, type = TokenType.TEXT, content = " text"},
+		{line = 1, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -210,6 +221,7 @@ tokenize_link_simple_test :: proc(t: ^testing.T) {
 		{line = 1, type = TokenType.TEXT, content = "Here is a "},
 		{line = 1, type = TokenType.LINK, content = "link", link = "https://www.google.com"},
 		{line = 1, type = TokenType.TEXT, content = "!"},
+		{line = 1, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -225,6 +237,7 @@ tokenize_link_empty_test :: proc(t: ^testing.T) {
 		{line = 1, type = TokenType.TEXT, content = "Here is an empty link "},
 		{line = 1, type = TokenType.LINK, content = "", link = ""},
 		{line = 1, type = TokenType.TEXT, content = "!"},
+		{line = 1, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -238,6 +251,7 @@ tokenize_link_invalid :: proc(t: ^testing.T) {
 	expected_tokens := [?]Token {
 		{line = 1, type = TokenType.PARAGRAPH},
 		{line = 1, type = TokenType.TEXT, content = "Here is a [](!"},
+		{line = 1, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -251,6 +265,7 @@ tokenize_link_invalid_2 :: proc(t: ^testing.T) {
 	expected_tokens := [?]Token {
 		{line = 1, type = TokenType.PARAGRAPH},
 		{line = 1, type = TokenType.TEXT, content = "Here is an [invalid link?]!"},
+		{line = 1, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -264,6 +279,7 @@ tokenize_link_invalid_3 :: proc(t: ^testing.T) {
 	expected_tokens := [?]Token {
 		{line = 1, type = TokenType.PARAGRAPH},
 		{line = 1, type = TokenType.TEXT, content = "Here is a [!"},
+		{line = 1, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -285,6 +301,7 @@ tokenize_image_simple :: proc(t: ^testing.T) {
 			link = "https://placehold.co/600x400",
 		},
 		{line = 1, type = TokenType.TEXT, content = "!"},
+		{line = 1, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -305,6 +322,7 @@ tokenize_image_with_figcap :: proc(t: ^testing.T) {
 			link = "https://placehold.co/600x400 \"Figure caption\"",
 		},
 		{line = 1, type = TokenType.TEXT, content = "!"},
+		{line = 1, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -321,6 +339,7 @@ tokenize_image_empty :: proc(t: ^testing.T) {
 		{line = 1, type = TokenType.TEXT, content = "Here is an "},
 		{line = 1, type = TokenType.IMAGE, content = "", link = ""},
 		{line = 1, type = TokenType.TEXT, content = "!"},
+		{line = 1, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -335,6 +354,7 @@ tokenize_image_invalid :: proc(t: ^testing.T) {
 	expected_tokens := [?]Token {
 		{line = 1, type = TokenType.PARAGRAPH},
 		{line = 1, type = TokenType.TEXT, content = "Here is an ![](!"},
+		{line = 1, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -348,6 +368,7 @@ tokenize_image_invalid_2 :: proc(t: ^testing.T) {
 	expected_tokens := [?]Token {
 		{line = 1, type = TokenType.PARAGRAPH},
 		{line = 1, type = TokenType.TEXT, content = "Here is an ![]!"},
+		{line = 1, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -361,6 +382,7 @@ tokenize_image_invalid_3 :: proc(t: ^testing.T) {
 	expected_tokens := [?]Token {
 		{line = 1, type = TokenType.PARAGRAPH},
 		{line = 1, type = TokenType.TEXT, content = "Here is an ![!"},
+		{line = 1, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -376,6 +398,7 @@ tokenize_new_line :: proc(t: ^testing.T) {
 		{line = 1, type = TokenType.TEXT, content = "Here is a "},
 		{line = 1, type = TokenType.NEW_LINE},
 		{line = 2, type = TokenType.TEXT, content = " new line"},
+		{line = 2, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -391,6 +414,7 @@ tokenize_new_line_and_invalid_image :: proc(t: ^testing.T) {
 		{line = 1, type = TokenType.TEXT, content = "Here is a !"},
 		{line = 1, type = TokenType.NEW_LINE},
 		{line = 2, type = TokenType.TEXT, content = "[](! new line"},
+		{line = 2, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -406,6 +430,7 @@ tokenize_carriage_return_new_line :: proc(t: ^testing.T) {
 		{line = 1, type = TokenType.TEXT, content = "Here is a "},
 		{line = 1, type = TokenType.NEW_LINE},
 		{line = 2, type = TokenType.TEXT, content = " new line"},
+		{line = 2, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -419,6 +444,7 @@ tokenize_carriage_return_invalid :: proc(t: ^testing.T) {
 	expected_tokens := [?]Token {
 		{line = 1, type = TokenType.PARAGRAPH},
 		{line = 1, type = TokenType.TEXT, content = "Here is an \r invalid cr"},
+		{line = 1, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -436,6 +462,7 @@ tokenize_escape_characters :: proc(t: ^testing.T) {
 			type = TokenType.TEXT,
 			content = "Here is an escaped # H1 tag and an escaped \\ backwards slash.",
 		},
+		{line = 1, type = TokenType.EOF},
 	}
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
@@ -448,6 +475,7 @@ compare_token_slices :: proc(first: []Token, second: []Token) -> (are_equal: boo
 			len(first),
 			len(second),
 		)
+		return false
 	}
 
 	for token, i in first {

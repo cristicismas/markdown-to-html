@@ -25,6 +25,7 @@ TokenType :: enum {
 	CODE_BLOCK,
 	LINK,
 	IMAGE,
+	EOF,
 	ERROR,
 }
 
@@ -63,7 +64,7 @@ tokenize :: proc(markdown: string) -> []Token {
 		scan_next_token(&scanner)
 	}
 
-	print_tokens(scanner.tokens[:])
+	add_token(&scanner, TokenType.EOF)
 
 	return scanner.tokens[:]
 }

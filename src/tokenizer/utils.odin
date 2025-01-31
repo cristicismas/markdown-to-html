@@ -31,7 +31,6 @@ print_tokens :: proc(tokens: []Token) {
 check_is_paragraph :: proc(scanner: ^Scanner) -> bool {
 	if len(scanner.tokens) > 1 {
 		prev_tokens := scanner.tokens[len(scanner.tokens) - 2:]
-		print_tokens(prev_tokens)
 
 		if prev_tokens[0].type == TokenType.NEW_LINE && prev_tokens[1].type == TokenType.NEW_LINE {
 			return true
