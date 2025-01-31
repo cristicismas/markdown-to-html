@@ -8,6 +8,7 @@ TOKEN_RUNES: []rune = {'-', '>', '[', '#', '*', '_', '`', '!', '\n', '\r', '\\',
 
 TokenType :: enum {
 	TEXT,
+	PARAGRAPH,
 	HASH_1,
 	HASH_2,
 	HASH_3,
@@ -94,6 +95,16 @@ add_token_text :: proc(scanner: ^Scanner, text: string) {
 		content = text,
 		type    = TokenType.TEXT,
 		line    = scanner.line,
+	}
+
+	is_paragraph := check_is_paragraph(scanner)
+
+	if is_paragraph {
+		p_token := Token {
+			type = TokenType.PARAGRAPH,
+			line = scanner.line,
+		}
+		append(&scanner.tokens, p_token)
 	}
 
 	// if the previous token was already text, consolidate them.
