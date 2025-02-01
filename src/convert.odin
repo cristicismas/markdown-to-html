@@ -13,7 +13,7 @@ ConversionState :: struct {
 	in_italic:      bool,
 	in_bold_italic: bool,
 	in_paragraph:   bool,
-	in_heading:     string,
+	in_heading:     t.TokenType,
 }
 
 Tag :: struct {
@@ -56,25 +56,37 @@ markdown_to_html :: proc(markdown: string) -> (html: string) {
 			open_or_close_bracket(conversion_state.in_paragraph, &builder, Tags[token.type])
 			conversion_state.in_paragraph = !conversion_state.in_paragraph
 		case t.TokenType.HASH_1:
+			strings.write_string(&builder, Tags[token.type].open)
+			conversion_state.in_heading = tt.HASH_1
 		case t.TokenType.HASH_2:
+			strings.write_string(&builder, Tags[token.type].open)
+			conversion_state.in_heading = tt.HASH_2
 		case t.TokenType.HASH_3:
+			strings.write_string(&builder, Tags[token.type].open)
+			conversion_state.in_heading = tt.HASH_3
 		case t.TokenType.HASH_4:
+			strings.write_string(&builder, Tags[token.type].open)
+			conversion_state.in_heading = tt.HASH_4
 		case t.TokenType.HASH_5:
+			strings.write_string(&builder, Tags[token.type].open)
+			conversion_state.in_heading = tt.HASH_5
 		case t.TokenType.HASH_6:
+			strings.write_string(&builder, Tags[token.type].open)
+			conversion_state.in_heading = tt.HASH_6
 		case t.TokenType.BOLD:
 			open_or_close_bracket(conversion_state.in_bold, &builder, Tags[token.type])
 			conversion_state.in_bold = !conversion_state.in_bold
 		case t.TokenType.ITALIC:
+			open_or_close_bracket(conversion_state.in_bold, &builder, Tags[token.type])
+			conversion_state.in_italic = !conversion_state.in_italic
 		case t.TokenType.BOLD_ITALIC:
+			open_or_close_bracket(conversion_state.in_bold, &builder, Tags[token.type])
+			conversion_state.in_bold_italic = !conversion_state.in_bold_italic
 		case t.TokenType.DASH:
 		case t.TokenType.NEW_LINE:
-			if conversion_state.in_paragraph {
-				strings.write_string(&builder, Tags[tt.PARAGRAPH].close)
-			}
+			handle_line_and_or_eof(&conversion_state, &builder)
 		case t.TokenType.EOF:
-			if conversion_state.in_paragraph {
-				strings.write_string(&builder, Tags[tt.PARAGRAPH].close)
-			}
+			handle_line_and_or_eof(&conversion_state, &builder)
 		case t.TokenType.QUOTE:
 		case t.TokenType.CODE:
 		case t.TokenType.CODE_BLOCK:
@@ -94,5 +106,26 @@ open_or_close_bracket :: proc(is_inside_bracket: bool, builder: ^strings.Builder
 		strings.write_string(builder, tag.close)
 	} else {
 		strings.write_string(builder, tag.open)
+	}
+}
+
+handle_line_and_or_eof :: proc(conversion_state: ^ConversionState, builder: ^strings.Builder) {
+	if conversion_state.in_heading != {} {
+		heading_tag, ok := Tags[conversion_state.in_heading]
+
+		if !ok {
+			fmt.eprintln(
+				"ERROR: Failed to convert heading. Found a in_heading tag that is not present on the Tags map.",
+			)
+			panic("CONVERSION_FAILURE")
+		}
+
+		strings.write_string(builder, heading_tag.close)
+		conversion_state.in_heading = {}
+	}
+
+	if conversion_state.in_paragraph {
+		strings.write_string(builder, Tags[tt.PARAGRAPH].close)
+		conversion_state.in_paragraph = false
 	}
 }
