@@ -37,6 +37,7 @@ Tags := map[t.TokenType]Tag {
 	tt.NEW_LINE    = {"<br />", ""},
 	tt.QUOTE       = {"<blockquote>", "</blockquote>"},
 	tt.CODE        = {"<pre><code>", "</code></pre>"},
+	tt.CODE_BLOCK  = {"<pre><code>", "</code></pre>"},
 	tt.LINK        = {"<a>", "</a>"},
 	tt.IMAGE       = {"<img>", "</img>"},
 }
@@ -98,6 +99,9 @@ markdown_to_html :: proc(markdown: string) -> (html: string) {
 			open_or_close_bracket(conversion_state.in_code, &builder, Tags[token.type])
 			conversion_state.in_code = !conversion_state.in_code
 		case t.TokenType.CODE_BLOCK:
+			strings.write_string(&builder, Tags[token.type].open)
+			strings.write_string(&builder, token.content)
+			strings.write_string(&builder, Tags[token.type].close)
 		case t.TokenType.LINK:
 			link_tag := strings.concatenate(
 				{"<a href=\"", token.link, "\">", token.content, "</a>"},
