@@ -15,7 +15,11 @@ ConversionState :: struct {
 	in_paragraph:   bool,
 	in_code:        bool,
 	in_quote:       bool,
+	in_ul:          bool,
+	in_ol:          bool,
 	in_heading:     t.TokenType,
+	tokens:         []t.Token,
+	current_index:  int,
 }
 
 Tag :: struct {
@@ -24,34 +28,39 @@ Tag :: struct {
 }
 
 Tags := map[t.TokenType]Tag {
-	tt.PARAGRAPH   = {"<p>", "</p>"},
-	tt.HASH_1      = {"<h1>", "</h1>"},
-	tt.HASH_2      = {"<h2>", "</h2>"},
-	tt.HASH_3      = {"<h3>", "</h3>"},
-	tt.HASH_4      = {"<h4>", "</h4>"},
-	tt.HASH_5      = {"<h5>", "</h5>"},
-	tt.HASH_6      = {"<h6>", "</h6>"},
-	tt.BOLD        = {"<b>", "</b>"},
-	tt.ITALIC      = {"<i>", "</i>"},
-	tt.BOLD_ITALIC = {"<b><i>", "</i></b>"},
-	tt.NEW_LINE    = {"<br />", ""},
-	tt.QUOTE       = {"<blockquote>", "</blockquote>"},
-	tt.CODE        = {"<pre><code>", "</code></pre>"},
-	tt.CODE_BLOCK  = {"<pre><code>", "</code></pre>"},
-	tt.LINK        = {"<a>", "</a>"},
-	tt.IMAGE       = {"<img>", "</img>"},
+	tt.PARAGRAPH    = {"<p>", "</p>"},
+	tt.HASH_1       = {"<h1>", "</h1>"},
+	tt.HASH_2       = {"<h2>", "</h2>"},
+	tt.HASH_3       = {"<h3>", "</h3>"},
+	tt.HASH_4       = {"<h4>", "</h4>"},
+	tt.HASH_5       = {"<h5>", "</h5>"},
+	tt.HASH_6       = {"<h6>", "</h6>"},
+	tt.BOLD         = {"<b>", "</b>"},
+	tt.ITALIC       = {"<i>", "</i>"},
+	tt.BOLD_ITALIC  = {"<b><i>", "</i></b>"},
+	tt.NEW_LINE     = {"<br />", ""},
+	tt.QUOTE        = {"<blockquote>", "</blockquote>"},
+	tt.CODE         = {"<pre><code>", "</code></pre>"},
+	tt.CODE_BLOCK   = {"<pre><code>", "</code></pre>"},
+	tt.UNORDERED_LI = {"<ul>", "</ul>"},
+	tt.ORDERED_LI   = {"<ol>", "</ol>"},
+	tt.LINK         = {"<a>", "</a>"},
+	tt.IMAGE        = {"<img>", "</img>"},
 }
 
 markdown_to_html :: proc(markdown: string) -> (html: string) {
 	tokens := t.tokenize(markdown)
 	fmt.println("tokens: ", tokens)
 
-	conversion_state := ConversionState{}
+	conversion_state := ConversionState {
+		tokens = tokens,
+	}
 
 	builder := strings.builder_make()
 	defer strings.builder_destroy(&builder)
 
 	for token, token_index in tokens {
+		conversion_state.current_index = token_index
 		defer free_all(context.temp_allocator)
 
 		switch token.type {
@@ -87,8 +96,14 @@ markdown_to_html :: proc(markdown: string) -> (html: string) {
 		case t.TokenType.BOLD_ITALIC:
 			open_or_close_bracket(conversion_state.in_bold_italic, &builder, Tags[token.type])
 			conversion_state.in_bold_italic = !conversion_state.in_bold_italic
-		// TODO: handle LI
 		case t.TokenType.UNORDERED_LI:
+			if !conversion_state.in_ul {
+				strings.write_string(&builder, Tags[tt.UNORDERED_LI].open)
+				conversion_state.in_ul = true
+			}
+
+			strings.write_string(&builder, "<li>")
+		// TODO: handle ordered li
 		case t.TokenType.ORDERED_LI:
 		case t.TokenType.NEW_LINE:
 			handle_line_end_or_eof(&conversion_state, &builder)
@@ -158,6 +173,11 @@ open_or_close_bracket :: proc(is_inside_bracket: bool, builder: ^strings.Builder
 }
 
 handle_line_end_or_eof :: proc(conversion_state: ^ConversionState, builder: ^strings.Builder) {
+	current_token := conversion_state.tokens[conversion_state.current_index]
+	next_token := get_token_at_index(conversion_state.tokens, conversion_state.current_index + 1)
+
+	has_mutated_state := false
+
 	if conversion_state.in_heading != {} {
 		heading_tag, ok := Tags[conversion_state.in_heading]
 
@@ -170,15 +190,47 @@ handle_line_end_or_eof :: proc(conversion_state: ^ConversionState, builder: ^str
 
 		strings.write_string(builder, heading_tag.close)
 		conversion_state.in_heading = {}
+		has_mutated_state = true
 	}
 
 	if conversion_state.in_quote == true {
 		strings.write_string(builder, Tags[tt.QUOTE].close)
 		conversion_state.in_quote = false
+		has_mutated_state = true
+	}
+
+	if conversion_state.in_ul {
+		strings.write_string(builder, "</li>")
+
+		if current_token.type == tt.EOF {
+			strings.write_string(builder, "</ul>")
+			conversion_state.in_ul = false
+		} else if next_token.type != tt.UNORDERED_LI {
+			strings.write_string(builder, "</ul>")
+			conversion_state.in_ul = false
+		}
+		has_mutated_state = true
 	}
 
 	if conversion_state.in_paragraph {
-		strings.write_string(builder, Tags[tt.PARAGRAPH].close)
-		conversion_state.in_paragraph = false
+		if current_token.type == tt.EOF ||
+		   next_token.type == tt.EOF ||
+		   next_token.type == tt.NEW_LINE {
+			strings.write_string(builder, Tags[tt.PARAGRAPH].close)
+			conversion_state.in_paragraph = false
+			has_mutated_state = true
+		}
 	}
+
+	if !has_mutated_state && current_token.type != tt.EOF {
+		strings.write_string(builder, Tags[tt.NEW_LINE].open)
+	}
+}
+
+get_token_at_index :: proc(tokens: []t.Token, index: int) -> t.Token {
+	if len(tokens) <= index && index >= 0 {
+		return t.Token{type = t.TokenType.ERROR}
+	}
+
+	return tokens[index]
 }

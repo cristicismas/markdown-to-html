@@ -4,7 +4,7 @@ import "core:fmt"
 import t "tokenizer"
 
 main :: proc() {
-	input_string := "Here is a list: \n- first\n- second\n- third with __bold__\nList has ended!"
-	tokens := t.tokenize(input_string)
-	t.print_tokens(tokens, true)
+	input_string := "```This is a \ncode block\nwith multiple\nlines```"
+	html := markdown_to_html(input_string)
+	fmt.println("html: ", html)
 }

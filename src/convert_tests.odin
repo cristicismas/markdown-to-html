@@ -40,3 +40,12 @@ convert_code_block_test :: proc(t: ^testing.T) {
 
 	testing.expect(t, html == expected_html)
 }
+
+@(test)
+convert_unordered_list_with_line_breaks :: proc(t: ^testing.T) {
+	input_string := "Here is a list: \n- first\n- second\n- third with __bold__\n\n\nList has ended!"
+	html := markdown_to_html(input_string)
+
+	expected_html := "<p>Here is a list: <br /><ul><li>first</li><li>second</li><li>third with <b>bold</b></li></ul></p><br /><br /><p>List has ended!</p>"
+	testing.expect(t, html == expected_html)
+}
