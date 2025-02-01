@@ -87,7 +87,9 @@ markdown_to_html :: proc(markdown: string) -> (html: string) {
 		case t.TokenType.BOLD_ITALIC:
 			open_or_close_bracket(conversion_state.in_bold_italic, &builder, Tags[token.type])
 			conversion_state.in_bold_italic = !conversion_state.in_bold_italic
-		case t.TokenType.DASH:
+		// TODO: handle LI
+		case t.TokenType.UNORDERED_LI:
+		case t.TokenType.ORDERED_LI:
 		case t.TokenType.NEW_LINE:
 			handle_line_end_or_eof(&conversion_state, &builder)
 		case t.TokenType.EOF:

@@ -468,21 +468,30 @@ tokenize_escape_characters :: proc(t: ^testing.T) {
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
 }
 
-compare_token_slices :: proc(first: []Token, second: []Token) -> (are_equal: bool) {
-	if len(first) != len(second) {
-		fmt.eprintfln(
-			"ERROR: Slice lengths are not equal. first len: %v; second len: %v",
-			len(first),
-			len(second),
-		)
-		return false
+@(test)
+tokenize_unordered_list :: proc(t: ^testing.T) {
+	input_string := "Here is a list: \n- first\n- second\n- third with __bold__\nList has ended!"
+	tokens := tokenize(input_string)
+
+	expected_tokens := [?]Token {
+		{line = 1, type = TokenType.PARAGRAPH},
+		{line = 1, type = TokenType.TEXT, content = "Here is a list: "},
+		{line = 1, type = TokenType.NEW_LINE},
+		{line = 2, type = TokenType.UNORDERED_LI},
+		{line = 2, type = TokenType.TEXT, content = "first"},
+		{line = 2, type = TokenType.NEW_LINE},
+		{line = 3, type = TokenType.UNORDERED_LI},
+		{line = 3, type = TokenType.TEXT, content = "second"},
+		{line = 3, type = TokenType.NEW_LINE},
+		{line = 4, type = TokenType.UNORDERED_LI},
+		{line = 4, type = TokenType.TEXT, content = "third with "},
+		{line = 4, type = TokenType.BOLD},
+		{line = 4, type = TokenType.TEXT, content = "bold"},
+		{line = 4, type = TokenType.BOLD},
+		{line = 4, type = TokenType.NEW_LINE},
+		{line = 5, type = TokenType.TEXT, content = "List has ended!"},
+		{line = 5, type = TokenType.EOF},
 	}
 
-	for token, i in first {
-		if second[i] != token {
-			return false
-		}
-	}
-
-	return true
+	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
 }

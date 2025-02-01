@@ -18,7 +18,8 @@ TokenType :: enum {
 	BOLD,
 	ITALIC,
 	BOLD_ITALIC,
-	DASH,
+	UNORDERED_LI,
+	ORDERED_LI,
 	NEW_LINE,
 	QUOTE,
 	CODE,
@@ -178,7 +179,16 @@ scan_next_token :: proc(scanner: ^Scanner) {
 			break
 		}
 	case '-':
-		add_token(scanner, tt.DASH)
+		next := peek_single(scanner, cast(int)scanner.current)
+		if next == ' ' {
+			add_token(scanner, tt.UNORDERED_LI)
+			scanner.current += 1
+		} else {
+			add_token(scanner, "-")
+		}
+	case '0' ..= '9':
+		// TODO: handle ordered list properly. look ahead until no more numbers are found.
+		add_token(scanner, tt.ORDERED_LI)
 	case '>':
 		prev_char := peek_single(scanner, cast(int)scanner.current - 2)
 		is_at_file_beginning := prev_char == utf8.RUNE_ERROR
