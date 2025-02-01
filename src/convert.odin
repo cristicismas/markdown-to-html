@@ -13,6 +13,8 @@ ConversionState :: struct {
 	in_italic:      bool,
 	in_bold_italic: bool,
 	in_paragraph:   bool,
+	in_code:        bool,
+	in_quote:       bool,
 	in_heading:     t.TokenType,
 }
 
@@ -45,10 +47,12 @@ markdown_to_html :: proc(markdown: string) -> (html: string) {
 
 	conversion_state := ConversionState{}
 
-	builder := strings.builder_make(context.temp_allocator)
+	builder := strings.builder_make()
 	defer strings.builder_destroy(&builder)
 
-	for token in tokens {
+	for token, token_index in tokens {
+		defer free_all(context.temp_allocator)
+
 		switch token.type {
 		case t.TokenType.TEXT:
 			strings.write_string(&builder, token.content)
@@ -77,10 +81,10 @@ markdown_to_html :: proc(markdown: string) -> (html: string) {
 			open_or_close_bracket(conversion_state.in_bold, &builder, Tags[token.type])
 			conversion_state.in_bold = !conversion_state.in_bold
 		case t.TokenType.ITALIC:
-			open_or_close_bracket(conversion_state.in_bold, &builder, Tags[token.type])
+			open_or_close_bracket(conversion_state.in_italic, &builder, Tags[token.type])
 			conversion_state.in_italic = !conversion_state.in_italic
 		case t.TokenType.BOLD_ITALIC:
-			open_or_close_bracket(conversion_state.in_bold, &builder, Tags[token.type])
+			open_or_close_bracket(conversion_state.in_bold_italic, &builder, Tags[token.type])
 			conversion_state.in_bold_italic = !conversion_state.in_bold_italic
 		case t.TokenType.DASH:
 		case t.TokenType.NEW_LINE:
@@ -88,11 +92,49 @@ markdown_to_html :: proc(markdown: string) -> (html: string) {
 		case t.TokenType.EOF:
 			handle_line_end_or_eof(&conversion_state, &builder)
 		case t.TokenType.QUOTE:
+			strings.write_string(&builder, Tags[token.type].open)
+			conversion_state.in_quote = true
 		case t.TokenType.CODE:
+			open_or_close_bracket(conversion_state.in_code, &builder, Tags[token.type])
+			conversion_state.in_code = !conversion_state.in_code
 		case t.TokenType.CODE_BLOCK:
 		case t.TokenType.LINK:
+			link_tag := strings.concatenate(
+				{"<a href=\"", token.link, "\">", token.content, "</a>"},
+				context.temp_allocator,
+			)
+			strings.write_string(&builder, link_tag)
 		case t.TokenType.IMAGE:
+			split := strings.split(token.link, " ")
+			if len(split) > 1 {
+				source := split[0]
+				figcap := strings.trim(strings.join(split[1:], " ", context.temp_allocator), "\"")
+
+				image_tag := strings.concatenate(
+					{
+						"<img src=\"",
+						source,
+						"\" alt=\"",
+						token.content,
+						"\" title=\"",
+						figcap,
+						"\"/>",
+					},
+					context.temp_allocator,
+				)
+
+				strings.write_string(&builder, image_tag)
+			} else {
+				image_tag := strings.concatenate(
+					{"<img src=\"", token.link, "\" alt=\"", token.content, "\"/>"},
+					context.temp_allocator,
+				)
+
+				strings.write_string(&builder, image_tag)
+			}
 		case t.TokenType.ERROR:
+			fmt.eprintln("ERROR: token.type is of type ERROR:", token)
+			panic("Found ERROR type token.")
 		}
 	}
 
@@ -122,6 +164,11 @@ handle_line_end_or_eof :: proc(conversion_state: ^ConversionState, builder: ^str
 
 		strings.write_string(builder, heading_tag.close)
 		conversion_state.in_heading = {}
+	}
+
+	if conversion_state.in_quote == true {
+		strings.write_string(builder, Tags[tt.QUOTE].close)
+		conversion_state.in_quote = false
 	}
 
 	if conversion_state.in_paragraph {
