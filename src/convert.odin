@@ -84,9 +84,9 @@ markdown_to_html :: proc(markdown: string) -> (html: string) {
 			conversion_state.in_bold_italic = !conversion_state.in_bold_italic
 		case t.TokenType.DASH:
 		case t.TokenType.NEW_LINE:
-			handle_line_and_or_eof(&conversion_state, &builder)
+			handle_line_end_or_eof(&conversion_state, &builder)
 		case t.TokenType.EOF:
-			handle_line_and_or_eof(&conversion_state, &builder)
+			handle_line_end_or_eof(&conversion_state, &builder)
 		case t.TokenType.QUOTE:
 		case t.TokenType.CODE:
 		case t.TokenType.CODE_BLOCK:
@@ -109,7 +109,7 @@ open_or_close_bracket :: proc(is_inside_bracket: bool, builder: ^strings.Builder
 	}
 }
 
-handle_line_and_or_eof :: proc(conversion_state: ^ConversionState, builder: ^strings.Builder) {
+handle_line_end_or_eof :: proc(conversion_state: ^ConversionState, builder: ^strings.Builder) {
 	if conversion_state.in_heading != {} {
 		heading_tag, ok := Tags[conversion_state.in_heading]
 
