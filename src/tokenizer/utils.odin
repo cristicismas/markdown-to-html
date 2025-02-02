@@ -2,6 +2,7 @@ package tokenizer
 
 import "core:fmt"
 import "core:reflect"
+import "core:unicode"
 
 print_token :: proc(token: Token) {
 	if name, ok := reflect.enum_name_from_value(token.type); ok {
@@ -86,4 +87,14 @@ check_is_paragraph :: proc(scanner: ^Scanner) -> bool {
 		return true
 	}
 	return false
+}
+
+is_numeric :: proc(s: string) -> bool {
+	for char in s {
+		if !unicode.is_number(char) {
+			return false
+		}
+	}
+
+	return true
 }

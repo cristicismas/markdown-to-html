@@ -105,6 +105,12 @@ markdown_to_html :: proc(markdown: string) -> (html: string) {
 			strings.write_string(&builder, "<li>")
 		// TODO: handle ordered li
 		case t.TokenType.ORDERED_LI:
+			if !conversion_state.in_ol {
+				strings.write_string(&builder, Tags[tt.ORDERED_LI].open)
+				conversion_state.in_ol = true
+			}
+
+			strings.write_string(&builder, "<li>")
 		case t.TokenType.NEW_LINE:
 			handle_line_end_or_eof(&conversion_state, &builder)
 		case t.TokenType.EOF:
@@ -208,6 +214,19 @@ handle_line_end_or_eof :: proc(conversion_state: ^ConversionState, builder: ^str
 		} else if next_token.type != tt.UNORDERED_LI {
 			strings.write_string(builder, "</ul>")
 			conversion_state.in_ul = false
+		}
+		has_mutated_state = true
+	}
+
+	if conversion_state.in_ol {
+		strings.write_string(builder, "</li>")
+
+		if current_token.type == tt.EOF {
+			strings.write_string(builder, "</ol>")
+			conversion_state.in_ol = false
+		} else if next_token.type != tt.ORDERED_LI {
+			strings.write_string(builder, "</ol>")
+			conversion_state.in_ol = false
 		}
 		has_mutated_state = true
 	}

@@ -42,6 +42,9 @@ Scanner :: struct {
 	// number of runes in source (not bytes)
 	source_len: int,
 	tokens:     [dynamic]Token,
+
+	// TODO: use ints instead of u32s
+
 	// Start index of current scan
 	start:      u32,
 	// Current index of the current scan
@@ -187,8 +190,32 @@ scan_next_token :: proc(scanner: ^Scanner) {
 			add_token(scanner, "-")
 		}
 	case '0' ..= '9':
-		// TODO: handle ordered list properly. look ahead until no more numbers are found.
-		add_token(scanner, tt.ORDERED_LI)
+		if len(scanner.tokens) > 0 && scanner.tokens[len(scanner.tokens) - 1].type == tt.NEW_LINE {
+			until_next_whitespace, ok := peek_until_next_specific_token(
+				scanner,
+				' ',
+				scanner.current,
+			)
+
+			last_elem :=
+				len(until_next_whitespace) > 0 ? utf8.rune_at_pos(until_next_whitespace, len(until_next_whitespace) - 1) : utf8.RUNE_ERROR
+
+			until_dot :=
+				len(until_next_whitespace) > 0 ? until_next_whitespace[:len(until_next_whitespace) - 1] : ""
+
+			is_sequence_numeric := len(until_next_whitespace) == 0 || is_numeric(until_dot)
+
+			if !ok || !is_sequence_numeric || last_elem != '.' {
+				add_token(scanner, until_next_whitespace)
+				scanner.current += cast(u32)strings.rune_count(until_next_whitespace) - 1
+				break
+			}
+
+			add_token(scanner, tt.ORDERED_LI)
+			scanner.current += cast(u32)strings.rune_count(until_next_whitespace)
+		} else {
+			add_token(scanner, utf8.runes_to_string({current_rune}))
+		}
 	case '>':
 		prev_char := peek_single(scanner, cast(int)scanner.current - 2)
 		is_at_file_beginning := prev_char == utf8.RUNE_ERROR

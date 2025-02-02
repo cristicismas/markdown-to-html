@@ -14,3 +14,6 @@ Then you can make use of the 2 shell scripts in the repo's root directory:
 
 `./test.sh` -> runs the tests for the tokenizer package, then the main package, outputting the binaries in the bin/ directory
 
+### NOTE:
+
+The parser for this doesn't use recursive rendering, so some nested stuff may not work properly.
