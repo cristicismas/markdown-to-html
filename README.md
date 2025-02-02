@@ -16,7 +16,7 @@ Then you can make use of the 2 shell scripts in the repo's root directory:
 
 ### NOTE:
 
-The parser for this doesn't use recursive rendering, so some nested stuff may not work properly.
+The parser for this doesn't use recursive composition, which means that some nested structures may not work properly.
 
 
 ## Usage Instructions:
