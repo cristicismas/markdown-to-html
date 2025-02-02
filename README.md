@@ -19,3 +19,17 @@ Then you can make use of the 2 shell scripts in the repo's root directory:
 ### NOTE:
 
 The parser for this doesn't use recursive rendering, so some nested stuff may not work properly.
+
+
+## Usage Instructions:
+
+Usage: md_to_html [path_to_markdown] [path_to_html] [force_flag]
+
+- path_to_markdown: path to the markdown file you wish to convert
+
+- path_to_html (optional): output path of the converted html file
+
+- force_flag ("--force"|"") (optional): If set, overrides the check for already existing output files, overriding whatever is in the path_to_html file.
+
+If [path_to_html] is not specified, the program will create an "output.html" file in the 
+directory where the program was called from.

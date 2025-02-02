@@ -5,11 +5,16 @@ import "core:os"
 import "core:strings"
 
 USAGE_INFO :: `
-Usage: md_to_html [path_to_markdown] [path_to_html]
+Usage: md_to_html [path_to_markdown] [path_to_html] [force_flag]
+
+- path_to_markdown: path to the markdown file you wish to convert
+
+- path_to_html (optional): output path of the converted html file
+
+- force_flag ("--force"|"") (optional): If set, overrides the check for already existing output files, overriding whatever is in the path_to_html file.
 
 If [path_to_html] is not specified, the program will create an "output.html" file in the 
 directory where the program was called from.
-
 `
 
 
@@ -41,7 +46,6 @@ cli_init :: proc() {
 		)
 		os.exit(1)
 	}
-
 
 	html := try_convert_file(markdown_file)
 	write_ok := os.write_entire_file(output_file, transmute([]u8)html)
