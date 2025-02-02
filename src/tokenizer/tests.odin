@@ -128,7 +128,7 @@ tokenize_code_simple :: proc(t: ^testing.T) {
 
 @(test)
 tokenize_code_block :: proc(t: ^testing.T) {
-	input_string := "Hi, here is a ```code block\nanother code block line\nand another```"
+	input_string := "Hi, here is a ```\ncode block\nanother code block line\nand another```"
 	tokens := tokenize(input_string)
 
 	expected_tokens := [?]Token {

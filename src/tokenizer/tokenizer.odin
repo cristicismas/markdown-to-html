@@ -268,15 +268,31 @@ scan_next_token :: proc(scanner: ^Scanner) {
 				"```",
 				scanner.current,
 			)
+			length_to_add := utf8.rune_count(text_until_next_code_block) + 3
 
-			// If we can't find the next CODE_BLOCK sequence in the source file, 
+			// remove the text on the same line as the code block beginning
+			start_index := 0
+			for r in text_until_next_code_block {
+				start_index += 1
+				if r == '\n' {
+					break
+				}
+			}
+
+			text_until_next_code_block = slice_by_rune(
+				text_until_next_code_block,
+				start_index,
+				utf8.rune_count(text_until_next_code_block),
+			)
+
+			// If we can't find the next CODE_BLOCK sequence in the source file,
 			// then just add this token as a string
 			if !ok {
 				add_token(scanner, "```")
 				return
 			}
 
-			scanner.current += utf8.rune_count(text_until_next_code_block) + 3
+			scanner.current += length_to_add
 
 			add_token(scanner, tt.CODE_BLOCK, text_until_next_code_block)
 		} else {

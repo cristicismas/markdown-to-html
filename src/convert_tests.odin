@@ -34,7 +34,7 @@ convert_image_figcap_test :: proc(t: ^testing.T) {
 
 @(test)
 convert_code_block_test :: proc(t: ^testing.T) {
-	input_string := "```This is a \ncode block\nwith multiple\nlines```"
+	input_string := "```\nThis is a \ncode block\nwith multiple\nlines```"
 	html := markdown_to_html(input_string)
 	expected_html := "<pre><code>This is a \ncode block\nwith multiple\nlines</code></pre>"
 
