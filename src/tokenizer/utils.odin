@@ -2,6 +2,7 @@ package tokenizer
 
 import "core:fmt"
 import "core:reflect"
+import "core:strings"
 import "core:unicode"
 
 print_token :: proc(token: Token) {
@@ -97,4 +98,28 @@ is_numeric :: proc(s: string) -> bool {
 	}
 
 	return true
+}
+
+slice_by_rune :: proc(
+	s: string,
+	start_index: int,
+	end_index: int,
+	allocator := context.allocator,
+) -> string {
+	sb := strings.builder_make(allocator)
+
+	index := 0
+	for rune in s {
+		if index == end_index {
+			return strings.to_string(sb)
+		}
+
+		if index >= start_index {
+			strings.write_rune(&sb, rune)
+		}
+
+		index += 1
+	}
+
+	return strings.to_string(sb)
 }

@@ -18,6 +18,10 @@ This is a paragraph with a [link](https://www.example.org).
 
 This is a paragraph with an image ![image alt](https://placehold.co/600x400).
 
+This is a paragraph with 3 UTF-8 characters: ‰ Œ Đ
+
+This is a paragraph with 3 emojis: "😀🙂🫥"
+
 1. Ordered list item 1
 2. Ordered list item 2
    - sublist item 1

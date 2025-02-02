@@ -523,3 +523,31 @@ tokenize_ordered_list :: proc(t: ^testing.T) {
 
 	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
 }
+
+@(test)
+tokenize_utf8_string_simple :: proc(t: ^testing.T) {
+	input_string := "‰ŒĐ"
+	tokens := tokenize(input_string)
+
+	expected_tokens := [?]Token {
+		{line = 1, type = TokenType.PARAGRAPH},
+		{line = 1, type = TokenType.TEXT, content = "‰ŒĐ"},
+		{line = 1, type = TokenType.EOF},
+	}
+
+	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
+}
+
+@(test)
+tokenize_utf8_emojis :: proc(t: ^testing.T) {
+	input_string := "😀🙂🫥"
+	tokens := tokenize(input_string)
+
+	expected_tokens := [?]Token {
+		{line = 1, type = TokenType.PARAGRAPH},
+		{line = 1, type = TokenType.TEXT, content = "😀🙂🫥"},
+		{line = 1, type = TokenType.EOF},
+	}
+
+	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
+}

@@ -1,8 +1,6 @@
 # Markdown to HTML convertor and tokenizer
 
-This project is supposed to support UTF8 files and tokens.
-
-So far, only the UTF-8 compatible tokenizer is done. Conversion part is still WIP.
+This project supports UTF-8 files and tokens, and is able to convert markdown files to html files, within a nice CLI interface.
 
 ## Compiling locally
 

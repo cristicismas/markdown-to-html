@@ -71,7 +71,7 @@ tokenize :: proc(markdown: string) -> []Token {
 }
 
 advance :: proc(scanner: ^Scanner) -> rune {
-	current_rune := utf8.rune_at_pos(scanner.source, cast(int)scanner.current)
+	current_rune := utf8.rune_at_pos(scanner.source, scanner.current)
 	scanner.current += 1
 
 	return current_rune
@@ -162,7 +162,7 @@ scan_next_token :: proc(scanner: ^Scanner) {
 	switch current_rune {
 	// Single character
 	case '\\':
-		next := peek_single(scanner, cast(int)scanner.current)
+		next := peek_single(scanner, scanner.current)
 
 		if next != utf8.RUNE_ERROR && next != '\n' && next != '\r' {
 			add_token(scanner, utf8.runes_to_string({next}))
@@ -172,14 +172,14 @@ scan_next_token :: proc(scanner: ^Scanner) {
 		add_token(scanner, tt.NEW_LINE)
 		scanner.line += 1
 	case '\r':
-		next := peek_single(scanner, cast(int)scanner.current)
+		next := peek_single(scanner, scanner.current)
 		if next != '\n' {
 			add_token(scanner, "\r")
 		} else {
 			break
 		}
 	case '-':
-		next := peek_single(scanner, cast(int)scanner.current)
+		next := peek_single(scanner, scanner.current)
 		if next == ' ' {
 			add_token(scanner, tt.UNORDERED_LI)
 			scanner.current += 1
@@ -214,7 +214,7 @@ scan_next_token :: proc(scanner: ^Scanner) {
 			add_token(scanner, utf8.runes_to_string({current_rune}))
 		}
 	case '>':
-		prev_char := peek_single(scanner, cast(int)scanner.current - 2)
+		prev_char := peek_single(scanner, scanner.current - 2)
 		is_at_file_beginning := prev_char == utf8.RUNE_ERROR
 
 		if prev_char == '\n' || is_at_file_beginning {
@@ -266,7 +266,7 @@ scan_next_token :: proc(scanner: ^Scanner) {
 			text_until_next_code_block, ok := peek_until_next_sequence(
 				scanner,
 				"```",
-				cast(int)scanner.current,
+				scanner.current,
 			)
 
 			// If we can't find the next CODE_BLOCK sequence in the source file, 
@@ -285,7 +285,7 @@ scan_next_token :: proc(scanner: ^Scanner) {
 	case '[':
 		try_scan_link(scanner, TokenType.LINK)
 	case '!':
-		next := peek_single(scanner, cast(int)scanner.current)
+		next := peek_single(scanner, scanner.current)
 
 		if next != '[' {
 			add_token(scanner, "!")
@@ -317,7 +317,7 @@ is_at_end :: proc {
 }
 
 is_at_end_scanner :: proc(scanner: ^Scanner) -> bool {
-	at_end := cast(int)scanner.current >= scanner.source_len
+	at_end := scanner.current >= scanner.source_len
 
 	return at_end
 }

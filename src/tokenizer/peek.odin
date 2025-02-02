@@ -6,14 +6,14 @@ import "core:unicode/utf8"
 
 // Peeks multiple elements ahead of the scanner's current position
 peek_multiple :: proc(scanner: ^Scanner, count: int) -> string {
-	index := cast(int)scanner.current
+	index := scanner.current
 	loops := 0
 
 	runes := make([dynamic]rune, 0, count)
 	defer delete(runes)
 
 	for loops < count {
-		start_index := cast(int)scanner.current + loops
+		start_index := scanner.current + loops
 		new_rune := peek_single(scanner, start_index)
 		append(&runes, new_rune)
 
@@ -32,8 +32,8 @@ peek_single :: proc(scanner: ^Scanner, index: int) -> rune {
 peek_until_next_token :: proc(scanner: ^Scanner, start_index: int) -> string {
 	search_index := start_index
 
-	for !is_at_end(scanner, cast(int)search_index - 1) {
-		current_rune := utf8.rune_at_pos(scanner.source, cast(int)search_index)
+	for !is_at_end(scanner, search_index - 1) {
+		current_rune := utf8.rune_at_pos(scanner.source, search_index)
 
 		if slice.contains(TOKEN_RUNES, current_rune) {
 			if search_index < scanner.current {
@@ -45,13 +45,13 @@ peek_until_next_token :: proc(scanner: ^Scanner, start_index: int) -> string {
 				return ""
 			}
 
-			return scanner.source[start_index - 1:search_index]
+			return slice_by_rune(scanner.source, start_index - 1, search_index)
 		}
 
 		search_index += 1
 	}
 
-	return scanner.source[scanner.current:search_index - 1]
+	return slice_by_rune(scanner.source, scanner.current, start_index - 1)
 }
 
 peek_until_next_specific_token :: proc(
@@ -77,7 +77,7 @@ peek_until_next_specific_token :: proc(
 				return "", false
 			}
 
-			return scanner.source[start_index - 1:search_index], true
+			return slice_by_rune(scanner.source, start_index - 1, search_index), true
 		}
 
 		search_index += 1
@@ -104,7 +104,7 @@ peek_until_next_sequence :: proc(
 		)
 
 		if sequence_at_index == "```" {
-			return scanner.source[scanner.current:search_index], true
+			return slice_by_rune(scanner.source, scanner.current, search_index), true
 		} else {
 			delete(sequence_at_index)
 		}

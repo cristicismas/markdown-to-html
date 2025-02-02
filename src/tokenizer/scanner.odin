@@ -24,7 +24,7 @@ try_scan_link :: proc(scanner: ^Scanner, link_type: TokenType) {
 
 	link_text := look_ahead[1:]
 
-	new_lookup_offset := cast(int)scanner.current + strings.rune_count(look_ahead)
+	new_lookup_offset := scanner.current + strings.rune_count(look_ahead)
 
 	// Look for the next character
 	next_rune := peek_single(scanner, new_lookup_offset)
