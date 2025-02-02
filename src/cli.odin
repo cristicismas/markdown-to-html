@@ -14,7 +14,7 @@ directory where the program was called from.
 
 
 cli_init :: proc() {
-	if len(os.args) < 2 || len(os.args) > 3 {
+	if len(os.args) < 2 || len(os.args) > 4 {
 		fmt.eprintln(
 			"Invalid arg count passed to program. Please find the usage instructions below:",
 		)
@@ -28,12 +28,22 @@ cli_init :: proc() {
 	}
 
 	markdown_file := os.args[1]
-	output_file := len(os.args) == 3 ? os.args[2] : "output.html"
+	output_file := len(os.args) == 3 && os.args[2] != "--force" ? os.args[2] : "output.html"
+	force_flag := len(os.args) == 4 ? os.args[3] == "--force" : false
+	if len(os.args) == 3 && os.args[2] == "--force" {
+		force_flag = true
+	}
+
+	if os.exists(output_file) && !force_flag {
+		fmt.eprintfln(
+			"Cannot run this program when another file with the \"%v\" name already exists. Please choose another output name for your html file.\nAlternatively, you can choose to override this check with the --force flag (please be ware that this will override the content in the output file).",
+			output_file,
+		)
+		os.exit(1)
+	}
+
 
 	html := try_convert_file(markdown_file)
-
-	// TODO: print error if output file already exists
-
 	write_ok := os.write_entire_file(output_file, transmute([]u8)html)
 	if !write_ok {
 		fmt.eprintfln(

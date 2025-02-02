@@ -239,7 +239,6 @@ handle_line_end_or_eof :: proc(conversion_state: ^ConversionState, builder: ^str
 		}
 	}
 
-	// FIXME: too many line breaks.
 	if !has_mutated_state && current_token.type != tt.EOF {
 		strings.write_string(builder, Tags[tt.NEW_LINE].open)
 	}
