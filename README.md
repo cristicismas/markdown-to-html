@@ -12,6 +12,8 @@ Then you can make use of the 2 shell scripts in the repo's root directory:
 
 `./run.sh` -> runs the main.odin file in the src/ directory, outputting the binary in the bin/ directory
 
+`./build.sh` -> builds the project in the src/ directory, outputting the binary in the bin/ directory, optimized for release.
+
 `./test.sh` -> runs the tests for the tokenizer package, then the main package, outputting the binaries in the bin/ directory
 
 ### NOTE:

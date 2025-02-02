@@ -32,7 +32,7 @@ TokenType :: enum {
 
 Token :: struct {
 	type:    TokenType,
-	line:    u32,
+	line:    int,
 	content: string,
 	link:    string,
 }
@@ -42,15 +42,12 @@ Scanner :: struct {
 	// number of runes in source (not bytes)
 	source_len: int,
 	tokens:     [dynamic]Token,
-
-	// TODO: use ints instead of u32s
-
 	// Start index of current scan
-	start:      u32,
+	start:      int,
 	// Current index of the current scan
-	current:    u32,
+	current:    int,
 	// Current line of the scan
-	line:       u32,
+	line:       int,
 }
 
 tokenize :: proc(markdown: string) -> []Token {
@@ -207,12 +204,12 @@ scan_next_token :: proc(scanner: ^Scanner) {
 
 			if !ok || !is_sequence_numeric || last_elem != '.' {
 				add_token(scanner, until_next_whitespace)
-				scanner.current += cast(u32)strings.rune_count(until_next_whitespace) - 1
+				scanner.current += strings.rune_count(until_next_whitespace) - 1
 				break
 			}
 
 			add_token(scanner, tt.ORDERED_LI)
-			scanner.current += cast(u32)strings.rune_count(until_next_whitespace)
+			scanner.current += strings.rune_count(until_next_whitespace)
 		} else {
 			add_token(scanner, utf8.runes_to_string({current_rune}))
 		}
@@ -236,7 +233,7 @@ scan_next_token :: proc(scanner: ^Scanner) {
 
 		if ok {
 			add_token(scanner, matched_token)
-			scanner.current += cast(u32)token_length
+			scanner.current += token_length
 		}
 	case '*':
 		matched_token, token_length, ok := scan_same_kind_tokens(
@@ -248,7 +245,7 @@ scan_next_token :: proc(scanner: ^Scanner) {
 
 		if ok {
 			add_token(scanner, matched_token)
-			scanner.current += cast(u32)token_length
+			scanner.current += token_length
 		}
 	case '_':
 		matched_token, token_length, ok := scan_same_kind_tokens(
@@ -260,7 +257,7 @@ scan_next_token :: proc(scanner: ^Scanner) {
 
 		if ok {
 			add_token(scanner, matched_token)
-			scanner.current += cast(u32)token_length
+			scanner.current += token_length
 		}
 	case '`':
 		if peek_multiple(scanner, 2) == "``" {
@@ -279,7 +276,7 @@ scan_next_token :: proc(scanner: ^Scanner) {
 				return
 			}
 
-			scanner.current += cast(u32)utf8.rune_count(text_until_next_code_block) + 3
+			scanner.current += utf8.rune_count(text_until_next_code_block) + 3
 
 			add_token(scanner, tt.CODE_BLOCK, text_until_next_code_block)
 		} else {
@@ -309,7 +306,7 @@ scan_next_token :: proc(scanner: ^Scanner) {
 		text := peek_until_next_token(scanner, scanner.current)
 		text_len := strings.rune_count(text)
 
-		scanner.current += cast(u32)text_len - 1
+		scanner.current += text_len - 1
 		add_token(scanner, text)
 	}
 }

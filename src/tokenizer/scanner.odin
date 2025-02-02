@@ -16,7 +16,7 @@ try_scan_link :: proc(scanner: ^Scanner, link_type: TokenType) {
 			text = strings.concatenate({"!", text})
 		}
 
-		scanner.current += cast(u32)text_len - 1
+		scanner.current += text_len - 1
 
 		add_token(scanner, text)
 		return
@@ -36,17 +36,13 @@ try_scan_link :: proc(scanner: ^Scanner, link_type: TokenType) {
 			text = strings.concatenate({"!", text})
 		}
 		add_token(scanner, text)
-		scanner.current = cast(u32)new_lookup_offset
+		scanner.current = new_lookup_offset
 		return
 	}
 
 	new_lookup_offset += 1
 
-	href_look_ahead, ok_2 := peek_until_next_specific_token(
-		scanner,
-		')',
-		cast(u32)new_lookup_offset,
-	)
+	href_look_ahead, ok_2 := peek_until_next_specific_token(scanner, ')', new_lookup_offset)
 
 	if !ok_2 {
 		text := strings.concatenate({"[", link_text, "]", "("})
@@ -56,7 +52,7 @@ try_scan_link :: proc(scanner: ^Scanner, link_type: TokenType) {
 			text = strings.concatenate({"!", text})
 		}
 
-		scanner.current += cast(u32)text_len - 1
+		scanner.current += text_len - 1
 		add_token(scanner, text)
 		return
 	}
@@ -68,7 +64,7 @@ try_scan_link :: proc(scanner: ^Scanner, link_type: TokenType) {
 	link_len := strings.rune_count(
 		strings.concatenate({"[", link_text, "]", "(", link_href, ")"}, context.temp_allocator),
 	)
-	scanner.current += cast(u32)link_len - 1
+	scanner.current += link_len - 1
 }
 
 /*

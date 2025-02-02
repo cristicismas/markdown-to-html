@@ -29,7 +29,7 @@ peek_single :: proc(scanner: ^Scanner, index: int) -> rune {
 	return current_rune
 }
 
-peek_until_next_token :: proc(scanner: ^Scanner, start_index: u32) -> string {
+peek_until_next_token :: proc(scanner: ^Scanner, start_index: int) -> string {
 	search_index := start_index
 
 	for !is_at_end(scanner, cast(int)search_index - 1) {
@@ -57,15 +57,15 @@ peek_until_next_token :: proc(scanner: ^Scanner, start_index: u32) -> string {
 peek_until_next_specific_token :: proc(
 	scanner: ^Scanner,
 	token: rune,
-	start_index: u32,
+	start_index: int,
 ) -> (
 	result: string,
 	ok: bool,
 ) {
 	search_index := start_index
 
-	for !is_at_end(scanner, cast(int)search_index - 1) {
-		current_rune := utf8.rune_at_pos(scanner.source, cast(int)search_index)
+	for !is_at_end(scanner, search_index - 1) {
+		current_rune := utf8.rune_at_pos(scanner.source, search_index)
 
 		if current_rune == token {
 			if search_index < scanner.current {

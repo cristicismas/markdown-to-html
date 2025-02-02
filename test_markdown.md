@@ -1,4 +1,3 @@
-
 # H1 Title
 
 ## H2 Title
@@ -17,6 +16,8 @@ This is a paragraph with *italicized* text and **bold** text. This is both ___bo
 
 This is a paragraph with a [link](https://www.example.org).
 
+This is a paragraph with an image ![image alt](https://placehold.co/600x400).
+
 1. Ordered list item 1
 2. Ordered list item 2
    - sublist item 1
@@ -27,7 +28,7 @@ This is a paragraph with a [link](https://www.example.org).
 `This is a single line of code`
 
 ```
-These are multiple 
+These are multiple
 lines of code
 ```
 
