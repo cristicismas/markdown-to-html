@@ -36,5 +36,11 @@ These are multiple
 lines of code
 ```
 
+```lang
+These are multiple
+lines of code
+with lang specified
+```
+
 Here is an escaped \# H1 Title tag
 
