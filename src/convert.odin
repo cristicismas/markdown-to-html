@@ -1,9 +1,9 @@
-package main
-import "core:fmt"
+#+feature dynamic-literals
 
-import "core:reflect"
+package main
+
+import "core:fmt"
 import "core:strings"
-import "core:unicode/utf8"
 import t "tokenizer"
 
 tt :: t.TokenType

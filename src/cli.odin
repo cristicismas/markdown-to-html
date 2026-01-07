@@ -2,7 +2,6 @@ package main
 
 import "core:fmt"
 import "core:os"
-import "core:strings"
 
 USAGE_INFO :: `
 Usage: md_to_html [path_to_markdown] [path_to_html] [force_flag]
@@ -13,10 +12,22 @@ Usage: md_to_html [path_to_markdown] [path_to_html] [force_flag]
 
 - force_flag ("--force"|"") (optional): If set, overrides the check for already existing output files, overriding whatever is in the path_to_html file.
 
-If [path_to_html] is not specified, the program will create an "output.html" file in the 
+- inline_flag ("--inline"|"") (optional): If set, outputs the html directly inline. Useful for using in bash scripts.
+
+If [path_to_html] and [inline_flag] are not specified, the program will create an "output.html" file in the
 directory where the program was called from.
 `
 
+
+find_flag :: proc(args: []string, flag: string) -> bool {
+	for s in args {
+		if s == flag {
+			return true
+		}
+	}
+
+	return false
+}
 
 cli_init :: proc() {
 	if len(os.args) < 2 || len(os.args) > 4 {
@@ -33,13 +44,22 @@ cli_init :: proc() {
 	}
 
 	markdown_file := os.args[1]
+
+	inline_flag := len(os.args) > 2 && find_flag(os.args, "--inline")
+
+	force_flag := len(os.args) == 4 && find_flag(os.args, "--force")
+
 	output_file := len(os.args) == 3 && os.args[2] != "--force" ? os.args[2] : "output.html"
-	force_flag := len(os.args) == 4 ? os.args[3] == "--force" : false
+
+	if inline_flag {
+		output_file = ""
+	}
+
 	if len(os.args) == 3 && os.args[2] == "--force" {
 		force_flag = true
 	}
 
-	if os.exists(output_file) && !force_flag {
+	if os.exists(output_file) && !force_flag && !inline_flag {
 		fmt.eprintfln(
 			"Cannot run this program when another file with the \"%v\" name already exists. Please choose another output name for your html file.\nAlternatively, you can choose to override this check with the --force flag (please be ware that this will override the content in the output file).",
 			output_file,
@@ -48,20 +68,25 @@ cli_init :: proc() {
 	}
 
 	html := try_convert_file(markdown_file)
-	write_ok := os.write_entire_file(output_file, transmute([]u8)html)
-	if !write_ok {
-		fmt.eprintfln(
-			"Failed to write to file: %v. Please make sure the path exists and that you are using the program correctly:",
+
+	if (inline_flag) {
+		fmt.print(html)
+	} else {
+		write_ok := os.write_entire_file(output_file, transmute([]u8)html)
+		if !write_ok {
+			fmt.eprintfln(
+				"Failed to write to file: %v. Please make sure the path exists and that you are using the program correctly:",
+				output_file,
+			)
+			fmt.eprintln(USAGE_INFO)
+		}
+
+		fmt.printfln(
+			"Successfully converted markdown to html, from \"%v\" to \"%v\"",
+			markdown_file,
 			output_file,
 		)
-		fmt.eprintln(USAGE_INFO)
 	}
-
-	fmt.printfln(
-		"Successfully converted markdown to html, from \"%v\" to \"%v\"",
-		markdown_file,
-		output_file,
-	)
 }
 
 try_convert_file :: proc(file_path: string) -> (html: string) {

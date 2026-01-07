@@ -21,7 +21,7 @@ The parser for this doesn't use recursive composition, which means that some nes
 
 ## Usage Instructions:
 
-Usage: md_to_html [path_to_markdown] [path_to_html] [force_flag]
+Usage: md_to_html [path_to_markdown] [path_to_html] [force_flag] [inline_flag]
 
 - path_to_markdown: path to the markdown file you wish to convert
 
@@ -29,5 +29,7 @@ Usage: md_to_html [path_to_markdown] [path_to_html] [force_flag]
 
 - force_flag ("--force"|"") (optional): If set, overrides the check for already existing output files, overriding whatever is in the path_to_html file.
 
-If [path_to_html] is not specified, the program will create an "output.html" file in the 
+- inline_flag ("--inline"|"") (optional): If set, outputs the html directly inline. Useful for using in bash scripts.
+
+If [path_to_html] and [inline_flag] are not specified, the program will create an "output.html" file in the 
 directory where the program was called from.
