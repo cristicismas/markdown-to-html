@@ -1,6 +1,5 @@
 package tokenizer
 
-import "core:fmt"
 import "core:testing"
 
 @(test)
@@ -451,7 +450,21 @@ tokenize_carriage_return_invalid :: proc(t: ^testing.T) {
 }
 
 @(test)
-tokenize_escape_characters :: proc(t: ^testing.T) {
+tokenize_escape_underscore :: proc(t: ^testing.T) {
+	input_string := "Here is an escaped \\_underscore."
+	tokens := tokenize(input_string)
+
+	expected_tokens := [?]Token {
+		{line = 1, type = TokenType.PARAGRAPH},
+		{line = 1, type = TokenType.TEXT, content = "Here is an escaped _underscore."},
+		{line = 1, type = TokenType.EOF},
+	}
+
+	testing.expect(t, compare_token_slices(expected_tokens[:], tokens))
+}
+
+@(test)
+tokenize_double_escape_characters :: proc(t: ^testing.T) {
 	input_string := "Here is an escaped \\# H1 tag and an escaped \\\\ backwards slash."
 	tokens := tokenize(input_string)
 

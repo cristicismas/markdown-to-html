@@ -1,7 +1,7 @@
 package main
 
 import "core:fmt"
-import "core:os"
+import os "core:os/old"
 
 USAGE_INFO :: `
 Usage: md_to_html [path_to_markdown] [path_to_html] [force_flag]
